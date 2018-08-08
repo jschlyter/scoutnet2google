@@ -8,9 +8,10 @@ import re
 import sys
 import time
 import requests
-import apiclient.discovery
+import googleapiclient.discovery
 import google.auth.compute_engine
-import oauth2client
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 
 DEFAULT_CONFIG_FILE = 'scoutnet2google.ini'
@@ -27,6 +28,11 @@ DEFAULT_CONFIG_GOOGLE = {
 }
 
 SCOPES = ['https://www.googleapis.com/auth/admin.directory.group']
+API_SERVICE_NAME = 'admin'
+API_VERSION = 'directory_v1'
+
+CLIENT_SECRETS_FILE = "client_secret.json"
+CLIENT_TOKEN_FILE = "client_token.json"
 MAX_RESULTS = 100
 CREATE_NAP = 10
 SCOUTNET_RE_FILTER = '^scoutnet-'
@@ -218,6 +224,32 @@ class GoogleDirectory(object):
         return all_members
 
 
+def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) -> Credentials:
+    """Authenticate with Google"""
+    try:
+        with open(token_file, 'rt') as token_file:
+            token_data = json.load(token_file)
+        credentials = Credentials(
+            None,
+            refresh_token=token_data.get('refresh_token'),
+            token_uri=token_data.get('token_uri'),
+            client_id=token_data.get('client_id'),
+            client_secret=token_data.get('client_secret'),
+        )
+    except:
+        flow = InstalledAppFlow.from_client_secrets_file(secret_file, scopes)
+        credentials = flow.run_console()
+        token_data = {
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+        }
+        with open(token_file, 'wt') as token_file:
+            json.dump(token_data, token_file)
+        logging.info("Credentials saved to %s", token_file)
+    return credentials
+
 def main() -> None:
     """main"""
 
@@ -234,18 +266,14 @@ def main() -> None:
         limit = int(limit)
 
     # Authenticate with Google
-    if config['google']['auth'] == 'standalone':
-        store = oauth2client.file.Storage('token.json')
-        credentials = store.get()
-        if not credentials or credentials.invalid:
-            flow = oauth2client.client.flow_from_clientsecrets('credentials.json', SCOPES)
-            credentials = oauth2client.tools.run_flow(flow, store)
+    if config['google']['auth'] == 'installed':
+        credentials = google_auth_installed(CLIENT_SECRETS_FILE, CLIENT_TOKEN_FILE, SCOPES)
     elif config['google']['auth'] == 'compute_engine':
         credentials = google.auth.compute_engine.Credentials()
     else:
         logging.critical("Unknown authentication method")
         sys.exit(-1)
-    service = apiclient.discovery.build('admin', 'directory_v1', credentials=credentials)
+    service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
     directory = GoogleDirectory(service, config['google']['domain'])
 
     # Configure Scoutnet

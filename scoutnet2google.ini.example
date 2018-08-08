@@ -3,6 +3,6 @@ api_id: 1234
 api_key: mekmitasdigoat
 
 [google]
-auth: standalone
+auth: installed
 #auth: compute_engine
 domain: example.com
