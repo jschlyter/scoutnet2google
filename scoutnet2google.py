@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 from typing import List, Optional, Union, Any, Set, Dict
-import json
-import time
-import re
-import logging
 import configparser
+import json
+import logging
+import re
+import sys
+import time
 import requests
 import apiclient.discovery
+import google.auth.compute_engine
 import oauth2client
-import httplib2
 
 
 DEFAULT_CONFIG_FILE = 'scoutnet2google.ini'
@@ -21,10 +22,11 @@ DEFAULT_CONFIG_SCOUTNET = {
 }
 
 DEFAULT_CONFIG_GOOGLE = {
+    'auth': 'standalone',
     'domain': '',
-    'scope': 'scope: https://www.googleapis.com/auth/admin.directory.group'
 }
 
+SCOPES = ['https://www.googleapis.com/auth/admin.directory.group']
 MAX_RESULTS = 100
 CREATE_NAP = 10
 SCOUTNET_RE_FILTER = '^scoutnet-'
@@ -219,7 +221,7 @@ class GoogleDirectory(object):
 def main() -> None:
     """main"""
 
-    #logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     config = configparser.ConfigParser()
     config['scoutnet'] = DEFAULT_CONFIG_SCOUTNET
@@ -231,20 +233,26 @@ def main() -> None:
     if limit is not None:
         limit = int(limit)
 
+    # Authenticate with Google
+    if config['google']['auth'] == 'standalone':
+        store = oauth2client.file.Storage('token.json')
+        credentials = store.get()
+        if not credentials or credentials.invalid:
+            flow = oauth2client.client.flow_from_clientsecrets('credentials.json', SCOPES)
+            credentials = oauth2client.tools.run_flow(flow, store)
+    elif config['google']['auth'] == 'compute_engine':
+        credentials = google.auth.compute_engine.Credentials()
+    else:
+        logging.critical("Unknown authentication method")
+        sys.exit(-1)
+    service = apiclient.discovery.build('admin', 'directory_v1', credentials=credentials)
+    directory = GoogleDirectory(service, config['google']['domain'])
+
     # Configure Scoutnet
     scoutnet = Scoutnet(api_endpoint=config['scoutnet']['api_endpoint'],
                         api_id=config['scoutnet']['api_id'],
                         api_key=config['scoutnet']['api_key'],
                         domain=config['google']['domain'])
-
-    # Authenticate with Google
-    store = oauth2client.file.Storage('token.json')
-    creds = store.get()
-    if not creds or creds.invalid:
-        flow = oauth2client.client.flow_from_clientsecrets('credentials.json', config['google']['scope'])
-        creds = oauth2client.tools.run_flow(flow, store)
-    service = apiclient.discovery.build('admin', 'directory_v1', http=creds.authorize(httplib2.Http()))
-    directory = GoogleDirectory(service, config['google']['domain'])
 
     # Fetch all mailing lists from Scoutnet
     all_lists = []

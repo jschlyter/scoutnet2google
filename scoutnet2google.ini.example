@@ -3,5 +3,6 @@ api_id: 1234
 api_key: mekmitasdigoat
 
 [google]
+auth: standalone
+#auth: compute_engine
 domain: example.com
-#scope: https://www.googleapis.com/auth/admin.directory.group
