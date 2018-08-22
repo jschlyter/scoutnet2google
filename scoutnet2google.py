@@ -59,7 +59,6 @@ class Mailinglist:
         self.all_addresses = list(self.aliases) + [self.scoutnet_address]
         self.group_address = self.all_addresses[0]
         self.group_aliases = list(set(self.all_addresses) - set([self.group_address]))
-        #print(self.__dict__)
 
 
 class Scoutnet(object):
@@ -122,7 +121,7 @@ class GoogleDirectory(object):
         old_groups = current_groups - set([list.group_address for list in lists])
         for group_key in old_groups:
             self.logger.info("Deleting group %s", group_key)
-            result = self.service.groups().delete(groupKey=group_key).execute()
+            self.service.groups().delete(groupKey=group_key).execute()
 
     def sync_group_mlist(self, group_key: str, mlist: Mailinglist) -> None:
         """Update/create group information"""
@@ -138,13 +137,15 @@ class GoogleDirectory(object):
             else:
                 result = self.service.groups().update(groupKey=group_key, body=group_body).execute()
                 self.logger.info("Group %s updated", group_key)
-        except:
+        except Exception as exc:
+            self.logger.debug("Exception: %s", str(exc))
             self.logger.warning("Group %s not found, will create", group_key)
             group = self.service.groups().insert(body=group_body).execute()
             try:
                 group = self.service.groups().get(groupKey=group_key).execute()
                 print(group)
-            except:
+            except Exception as exc:
+                self.logger.debug("Exception: %s", str(exc))
                 self.logger.warning("Group %s not found once created, taking a short nap and retry", group_key)
                 time.sleep(CREATE_NAP)
                 group = self.service.groups().get(groupKey=group_key).execute()
@@ -175,15 +176,17 @@ class GoogleDirectory(object):
         for member_key in new_members:
             member_body = {'email': member_key}
             try:
-                result = self.service.members().insert(groupKey=group_key, body=member_body).execute()
+                self.service.members().insert(groupKey=group_key, body=member_body).execute()
                 self.logger.info("Added member %s to group %s", member_key, group_key)
-            except:
+            except Exception as exc:
+                self.logger.debug("Exception: %s", str(exc))
                 self.logger.error("Failed to add %s to group %s", member_key, group_key)
         for member_key in old_members:
             try:
-                result = self.service.members().delete(groupKey=group_key, memberKey=member_key).execute()
+                self.service.members().delete(groupKey=group_key, memberKey=member_key).execute()
                 self.logger.info("Removed member %s from group %s", member_key, group_key)
-            except:
+            except Exception as exc:
+                self.logger.debug("Exception: %s", str(exc))
                 self.logger.error("Failed to delete %s from group %s", member_key, group_key)
 
     def get_all_groups(self, re_filter: str) -> List[str]:
@@ -204,7 +207,7 @@ class GoogleDirectory(object):
                 if not ignore_group:
                     all_groups.append(group_address)
                 else:
-                    self.logger.info("Group %s ignored", group_address)                    
+                    self.logger.info("Group %s ignored", group_address)
             token = result.get('nextPageToken')
             if token is None:
                 break
@@ -225,7 +228,7 @@ class GoogleDirectory(object):
 
 
 def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) -> Credentials:
-    """Authenticate with Google"""
+    """Authenticate installed applications with Google"""
     try:
         with open(token_file, 'rt') as token_file:
             token_data = json.load(token_file)
@@ -236,7 +239,8 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
             client_id=token_data.get('client_id'),
             client_secret=token_data.get('client_secret'),
         )
-    except:
+    except Exception as exc:
+        logging.debug("Exception: %s", str(exc))
         flow = InstalledAppFlow.from_client_secrets_file(secret_file, scopes)
         credentials = flow.run_console()
         token_data = {
@@ -249,6 +253,7 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
             json.dump(token_data, token_file)
         logging.info("Credentials saved to %s", token_file)
     return credentials
+
 
 def main() -> None:
     """main"""
@@ -294,7 +299,7 @@ def main() -> None:
 
     # Syncronize with Google Directory
     directory.sync_mlists(all_lists)
-    
+
 
 if __name__ == "__main__":
     main()
