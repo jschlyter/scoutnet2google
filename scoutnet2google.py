@@ -60,6 +60,20 @@ class Mailinglist:
         self.group_address = self.all_addresses[0]
         self.group_aliases = list(set(self.all_addresses) - set([self.group_address]))
 
+    def dump(self) -> None:
+        """Dump mailinglist to disk"""
+        filename = f"scoutnet-{self.localpart}.json"
+        dump = {
+            'id': self.localpart,
+            'title': self.title,
+            'description': self.description,
+            'group_address': self.group_address,
+            'group_aliases': self.group_aliases,
+            'members': list(self.members),
+        }
+        with open(filename, 'wt') as file:
+            file.write(json.dumps(dump, sort_keys=True, indent=4))
+
 
 class Scoutnet(object):
 
