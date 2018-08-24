@@ -42,30 +42,30 @@ SCOUTNET_RE_FILTER = '^scoutnet-'
 class Mailinglist:
 
     def __init__(self,
-                 localpart: str,
+                 unique_id: str,
                  domain: str,
                  members: List[str],
                  aliases: List[str] = [],
                  title: Optional[str] = None,
                  description: Optional[str] = None) -> None:
-        self.localpart = localpart
+        self.unique_id = unique_id
         self.members = set(members)
         self.aliases = set(aliases)
         if title is not None:
             self.title = f"{title} (Scoutnet)"
         else:
-            self.title = f"{localpart} (Scoutnet)"
+            self.title = f"{unique_id} (Scoutnet)"
         self.description = description
-        self.scoutnet_address = f"scoutnet-{localpart}@{domain}"
+        self.scoutnet_address = f"scoutnet-{unique_id}@{domain}"
         self.all_addresses = list(self.aliases) + [self.scoutnet_address]
         self.group_address = self.all_addresses[0]
         self.group_aliases = list(set(self.all_addresses) - set([self.group_address]))
 
     def dump(self) -> None:
         """Dump mailinglist to disk"""
-        filename = f"scoutnet-{self.localpart}.json"
+        filename = f"scoutnet-{self.unique_id}.json"
         dump = {
-            'id': self.localpart,
+            'id': self.unique_id,
             'title': self.title,
             'description': self.description,
             'group_address': self.group_address,
@@ -107,7 +107,7 @@ class Scoutnet(object):
             aliases = list(aliases.values())
         else:
             aliases = []
-        return Mailinglist(localpart=list_data['list_email_key'],
+        return Mailinglist(unique_id=list_data['list_email_key'],
                            domain=self.domain,
                            members=list(email_addresses),
                            aliases=aliases,
@@ -323,7 +323,7 @@ def main() -> None:
     for (clist, cdata) in scoutnet.customlists().items():
         count += 1
         mlist = scoutnet.get_list(cdata)
-        logging.info("Fetched %s: %s", mlist.localpart, mlist.title)
+        logging.info("Fetched %s: %s", mlist.unique_id, mlist.title)
         all_lists.append(mlist)
         if limit is not None and count >= limit:
             break
