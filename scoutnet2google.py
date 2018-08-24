@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import List, Optional, Union, Any, Set, Dict
+import argparse
 import configparser
 import json
 import logging
@@ -272,7 +273,23 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
 def main() -> None:
     """main"""
 
-    logging.basicConfig(level=logging.INFO)
+    parser = argparse.ArgumentParser(description='Convert DNS zonefile to JSON')
+    parser.add_argument('--dump',
+                        dest='dump',
+                        action='store_true',
+                        help="Dump all groups to disk")
+    parser.add_argument('--skip-google',
+                        dest='skip_google',
+                        action='store_true',
+                        help="Do not synchronize changes to Google Directory")
+    parser.add_argument('--debug',
+                        dest='debug',
+                        action='store_true',
+                        help="Enable debugging")
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
     config = configparser.ConfigParser()
     config['scoutnet'] = DEFAULT_CONFIG_SCOUTNET
@@ -310,9 +327,12 @@ def main() -> None:
         all_lists.append(mlist)
         if limit is not None and count >= limit:
             break
+        if args.dump:
+            mlist.dump()
 
     # Syncronize with Google Directory
-    directory.sync_mlists(all_lists)
+    if not args.skip_google:
+        directory.sync_mlists(all_lists)
 
 
 if __name__ == "__main__":
