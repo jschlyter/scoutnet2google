@@ -8,6 +8,7 @@ import logging
 import re
 import sys
 import time
+from distutils.util import strtobool
 import requests
 import googleapiclient.discovery
 import google.auth.compute_engine
@@ -20,7 +21,8 @@ DEFAULT_CONFIG_FILE = 'scoutnet2google.ini'
 DEFAULT_CONFIG_SCOUTNET = {
     'api_endpoint': 'https://www.scoutnet.se/api',
     'api_id': '',
-    'api_key': ''
+    'api_key': '',
+    'include_generic': 'True',
 }
 
 DEFAULT_CONFIG_GOOGLE = {
@@ -68,8 +70,8 @@ class Mailinglist:
             'id': self.unique_id,
             'title': self.title,
             'description': self.description,
-            'group_address': self.group_address,
-            'group_aliases': self.group_aliases,
+            'address': self.group_address,
+            'aliases': list(self.aliases),
             'members': list(self.members),
         }
         with open(filename, 'wt') as file:
@@ -301,16 +303,17 @@ def main() -> None:
     if limit is not None:
         limit = int(limit)
 
-    # Authenticate with Google
-    if config['google']['auth'] == 'installed':
-        credentials = google_auth_installed(CLIENT_SECRETS_FILE, CLIENT_TOKEN_FILE, SCOPES)
-    elif config['google']['auth'] == 'compute_engine':
-        credentials = google.auth.compute_engine.Credentials()
-    else:
-        logging.critical("Unknown authentication method")
-        sys.exit(-1)
-    service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    directory = GoogleDirectory(service, config['google']['domain'])
+    if not args.skip_google:
+        # Authenticate with Google
+        if config['google']['auth'] == 'installed':
+            credentials = google_auth_installed(CLIENT_SECRETS_FILE, CLIENT_TOKEN_FILE, SCOPES)
+        elif config['google']['auth'] == 'compute_engine':
+            credentials = google.auth.compute_engine.Credentials()
+        else:
+            logging.critical("Unknown authentication method")
+            sys.exit(-1)
+        service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+        directory = GoogleDirectory(service, config['google']['domain'])
 
     # Configure Scoutnet
     scoutnet = Scoutnet(api_endpoint=config['scoutnet']['api_endpoint'],
@@ -320,15 +323,20 @@ def main() -> None:
 
     # Fetch all mailing lists from Scoutnet
     all_lists = []
+    include_generic = strtobool(config['scoutnet']['include_generic'])
     for (clist, cdata) in scoutnet.customlists().items():
         count += 1
         mlist = scoutnet.get_list(cdata)
         logging.info("Fetched %s: %s", mlist.unique_id, mlist.title)
-        all_lists.append(mlist)
+        if include_generic or len(mlist.aliases) > 0:
+            logging.debug("Including %s: %s", mlist.unique_id, mlist.title)
+            all_lists.append(mlist)
+            if args.dump:
+                mlist.dump()
+        else:
+            logging.debug("Excluding %s: %s", mlist.unique_id, mlist.title)
         if limit is not None and count >= limit:
             break
-        if args.dump:
-            mlist.dump()
 
     # Syncronize with Google Directory
     if not args.skip_google:
