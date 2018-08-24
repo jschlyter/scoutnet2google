@@ -71,7 +71,7 @@ class Mailinglist:
             'title': self.title,
             'description': self.description,
             'address': self.group_address,
-            'aliases': list(self.aliases),
+            'aliases': list(self.group_aliases),
             'members': list(self.members),
         }
         with open(filename, 'wt') as file:
