@@ -145,7 +145,7 @@ class GoogleDirectory(object):
         group_body = {
             'email': mlist.group_address,
             'name': mlist.title,
-            'description': mlist.description,
+            'description': re.sub("\n|\r", "", mlist.description.strip())
         }
         try:
             result = self.service.groups().get(groupKey=group_key).execute()
@@ -157,6 +157,7 @@ class GoogleDirectory(object):
         except Exception as exc:
             self.logger.debug("Exception: %s", str(exc))
             self.logger.warning("Group %s not found, will create", group_key)
+            self.logger.debug("Creating group %s: %s", group_key, group_body)
             group = self.service.groups().insert(body=group_body).execute()
             try:
                 group = self.service.groups().get(groupKey=group_key).execute()
