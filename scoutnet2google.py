@@ -54,7 +54,7 @@ class Mailinglist:
                  description: Optional[str] = None) -> None:
         self.unique_id = unique_id
         self.members = set(members)
-        self.aliases = set(aliases)
+        self.aliases = set(x.lower() for x in aliases)
         if title is not None:
             self.title = f"{title} (Scoutnet)"
         else:
