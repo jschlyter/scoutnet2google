@@ -66,10 +66,9 @@ class Mailinglist:
         self.group_address = list(self.aliases)[0] if len(self.aliases) == 1 else scoutnet_address
         self.group_aliases = list(set(self.all_addresses) - set([self.group_address]))
 
-    def dump(self) -> None:
-        """Dump mailinglist to disk"""
-        filename = f"scoutnet-{self.unique_id}.json"
-        dump = {
+    def export(self) -> {}:
+        """Return mailinglist as dictionary"""
+        return {
             'id': self.unique_id,
             'title': self.title,
             'description': self.description,
@@ -77,8 +76,6 @@ class Mailinglist:
             'aliases': list(self.group_aliases),
             'members': list(self.members),
         }
-        with open(filename, 'wt') as file:
-            file.write(json.dumps(dump, sort_keys=True, indent=4))
 
 
 class Scoutnet(object):
@@ -281,10 +278,11 @@ def main() -> None:
     """main"""
 
     parser = argparse.ArgumentParser(description='Convert DNS zonefile to JSON')
-    parser.add_argument('--dump',
-                        dest='dump',
-                        action='store_true',
-                        help="Dump all groups to disk")
+
+    parser.add_argument('--output',
+                        dest='output',
+                        metavar='filename',
+                        help='Write all groups to file')
     parser.add_argument('--skip-google',
                         dest='skip_google',
                         action='store_true',
@@ -343,12 +341,16 @@ def main() -> None:
         if include_generic or len(mlist.aliases) > 0:
             LOGGER.debug("Including %s: %s", mlist.unique_id, mlist.title)
             all_lists.append(mlist)
-            if args.dump:
-                mlist.dump()
         else:
             LOGGER.debug("Excluding %s: %s", mlist.unique_id, mlist.title)
         if limit is not None and count >= limit:
             break
+
+    # Optionally output all groups to file
+    if args.output:
+        groups = [mlist.export() for mlist in all_lists]
+        with open(args.output, 'wt') as file:
+            file.write(json.dumps(groups, sort_keys=True, indent=4))
 
     # Syncronize with Google Directory
     if not args.skip_google:
