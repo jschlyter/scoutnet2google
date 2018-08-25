@@ -40,6 +40,8 @@ MAX_RESULTS = 100
 CREATE_NAP = 10
 SCOUTNET_RE_FILTER = '^scoutnet-'
 
+LOGGER = logging.getLogger('scoutnet2google')
+
 
 class Mailinglist:
 
@@ -122,7 +124,7 @@ class GoogleDirectory(object):
     def __init__(self, service: Any, domain: str) -> None:
         self.service = service
         self.domain = domain
-        self.logger = logging.getLogger(__name__)
+        self.logger = LOGGER.getChild('GoogleDirectory')
 
     def sync_mlists(self, lists: List[Mailinglist]) -> None:
         """Syncronize mailing lists with Google"""
@@ -247,6 +249,7 @@ class GoogleDirectory(object):
 
 def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) -> Credentials:
     """Authenticate installed applications with Google"""
+    logger = LOGGER.getChild('google_auth_installed')
     try:
         with open(token_file, 'rt') as token_file:
             token_data = json.load(token_file)
@@ -269,7 +272,7 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
         }
         with open(token_file, 'wt') as token_file:
             json.dump(token_data, token_file)
-        logging.info("Credentials saved to %s", token_file)
+        logger.info("Credentials saved to %s", token_file)
     return credentials
 
 
@@ -285,11 +288,18 @@ def main() -> None:
                         dest='skip_google',
                         action='store_true',
                         help="Do not synchronize changes to Google Directory")
+    parser.add_argument('--verbose',
+                        dest='verbose',
+                        action='store_true',
+                        help="Enable verbose output")
     parser.add_argument('--debug',
                         dest='debug',
                         action='store_true',
-                        help="Enable debugging")
+                        help="Enable debugging output")
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -311,7 +321,7 @@ def main() -> None:
         elif config['google']['auth'] == 'compute_engine':
             credentials = google.auth.compute_engine.Credentials()
         else:
-            logging.critical("Unknown authentication method")
+            LOGGER.critical("Unknown authentication method")
             sys.exit(-1)
         service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
         directory = GoogleDirectory(service, config['google']['domain'])
@@ -328,14 +338,14 @@ def main() -> None:
     for (clist, cdata) in scoutnet.customlists().items():
         count += 1
         mlist = scoutnet.get_list(cdata)
-        logging.info("Fetched %s: %s", mlist.unique_id, mlist.title)
+        LOGGER.info("Fetched %s: %s", mlist.unique_id, mlist.title)
         if include_generic or len(mlist.aliases) > 0:
-            logging.debug("Including %s: %s", mlist.unique_id, mlist.title)
+            LOGGER.debug("Including %s: %s", mlist.unique_id, mlist.title)
             all_lists.append(mlist)
             if args.dump:
                 mlist.dump()
         else:
-            logging.debug("Excluding %s: %s", mlist.unique_id, mlist.title)
+            LOGGER.debug("Excluding %s: %s", mlist.unique_id, mlist.title)
         if limit is not None and count >= limit:
             break
 
