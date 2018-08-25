@@ -60,9 +60,10 @@ class Mailinglist:
         else:
             self.title = f"{unique_id} (Scoutnet)"
         self.description = description
-        self.scoutnet_address = f"scoutnet-{unique_id}@{domain}"
-        self.all_addresses = list(self.aliases) + [self.scoutnet_address]
-        self.group_address = self.all_addresses[0]
+        scoutnet_address = f"scoutnet-{unique_id}@{domain}"
+        self.all_addresses = list(self.aliases) + [scoutnet_address]
+        # use single alias group address, otherwise use generated address
+        self.group_address = list(self.aliases)[0] if len(self.aliases) == 1 else scoutnet_address
         self.group_aliases = list(set(self.all_addresses) - set([self.group_address]))
 
     def dump(self) -> None:

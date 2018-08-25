@@ -1,6 +1,7 @@
 [scoutnet]
 api_id: 1234
 api_key: mekmitasdigoat
+include_generic: False
 
 [google]
 auth: installed
