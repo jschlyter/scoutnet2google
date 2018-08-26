@@ -111,7 +111,6 @@ class GoogleDirectory(object):
         self.service = service
         self.domain = domain
         self.logger = LOGGER.getChild('GoogleDirectory')
-        self.dry_run = True
 
     def sync_groups(self, groups: List[GoogleGroup]) -> None:
         """Syncronize mailing lists with Google"""
@@ -127,8 +126,7 @@ class GoogleDirectory(object):
         old_groups = current_groups - set([group.address for group in groups])
         for group_key in old_groups:
             self.logger.info("Deleting group %s", group_key)
-            if not self.dry_run:
-                self.service.groups().delete(groupKey=group_key).execute()
+            self.service.groups().delete(groupKey=group_key).execute()
 
     def sync_group_info(self, group: GoogleGroup) -> None:
         """Update/create group information"""
