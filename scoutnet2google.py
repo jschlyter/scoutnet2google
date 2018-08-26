@@ -70,6 +70,7 @@ class Scoutnet(object):
         self.session = requests.Session()
         self.session.auth = (api_id, api_key)
         self.domain = domain
+        self.logger = LOGGER.getChild('Scoutnet')
 
     def customlists(self) -> Any:
         response = self.session.get('{}/group/customlists'.format(self.endpoint))
@@ -89,11 +90,14 @@ class Scoutnet(object):
                     extra_emails = json.loads(member_data['extra_emails']['value'])
                     for email in extra_emails:
                         email_addresses.add(email.lower())
-        aliases = list_data.get('aliases', {})
-        if len(aliases) > 0:
-            aliases = list(set(aliases.values()))
-        else:
-            aliases = []
+        list_aliases = list_data.get('aliases', {})
+        aliases = []
+        if len(list_aliases) > 0:
+            for alias in list(set(list_aliases.values())):
+                if alias.endswith('@' + self.domain):
+                    aliases.append(alias)
+                else:
+                    self.logger.error("Invalid domain in alias: %s", alias)
         return ScoutnetMailinglist(id=list_data['list_email_key'],
                                    members=list(email_addresses),
                                    aliases=aliases,
