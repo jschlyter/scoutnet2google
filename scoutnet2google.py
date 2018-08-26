@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import List, Optional, Union, Any, Set, Dict
+from typing import List, Optional, Union, Any, Dict
 import argparse
 import configparser
 import json
@@ -9,7 +9,6 @@ import re
 import sys
 import time
 from dataclasses import dataclass, field
-from distutils.util import strtobool
 import requests
 import googleapiclient.discovery
 import google.auth.compute_engine
@@ -38,7 +37,7 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 CLIENT_TOKEN_FILE = "client_token.json"
 MAX_RESULTS = 100
 CREATE_NAP = 10
-SCOUTNET_RE_FILTER = '.*\(Scoutnet\)$'
+SCOUTNET_RE_FILTER = '.*\\(Scoutnet\\)$'
 SCOUTNET_TAG = '(Scoutnet)'
 
 LOGGER = logging.getLogger('scoutnet2google')
