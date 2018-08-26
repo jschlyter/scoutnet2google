@@ -23,7 +23,6 @@ DEFAULT_CONFIG_SCOUTNET = {
     'api_endpoint': 'https://www.scoutnet.se/api',
     'api_id': '',
     'api_key': '',
-    'include_generic': 'True',
 }
 
 DEFAULT_CONFIG_GOOGLE = {
@@ -342,7 +341,6 @@ def main() -> None:
 
     # Fetch all mailing lists from Scoutnet
     all_lists = []
-    include_generic = strtobool(config['scoutnet']['include_generic'])
     for (clist, cdata) in scoutnet.customlists().items():
         count += 1
         mlist = scoutnet.get_list(cdata)
