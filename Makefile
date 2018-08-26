@@ -11,6 +11,3 @@ lint:
 
 clean:
 	rm -f $(CLEANFILES)
-
-tidy:
-	rm -f scoutnet-*.json
