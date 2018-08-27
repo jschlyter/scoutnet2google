@@ -133,7 +133,7 @@ class GoogleDirectory(object):
         """Syncronize mailing lists with Google"""
         self.delete_removed_groups(groups)
         for group in groups:
-            self.logger.debug("Synchronizing group %s", group.address)
+            self.logger.info("Synchronizing group %s", group.address)
             self.sync_group_info(group)
             self.sync_group_aliases(group)
             self.sync_group_members(group)
