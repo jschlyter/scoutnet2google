@@ -40,7 +40,6 @@ CREATE_NAP = 10
 SCOUTNET_RE_FILTER = '.*\\(Scoutnet\\)$'
 SCOUTNET_TAG = '(Scoutnet)'
 
-LOGGER = logging.getLogger('scoutnet2google')
 
 
 @dataclass(frozen=True)
@@ -68,7 +67,7 @@ class Scoutnet(object):
         self.session = requests.Session()
         self.session.auth = (api_id, api_key)
         self.domain = domain
-        self.logger = LOGGER.getChild('Scoutnet')
+        self.logger = logging.getLogger('Scoutnet')
 
     def customlists(self) -> Any:
         response = self.session.get('{}/group/customlists'.format(self.endpoint))
@@ -109,12 +108,12 @@ class Scoutnet(object):
         for (clist, cdata) in self.customlists().items():
             count += 1
             mlist = self.get_list(cdata)
-            LOGGER.info("Fetched %s: %s (%d members)", mlist.id, mlist.title, len(mlist.members))
+            self.logger.info("Fetched %s: %s (%d members)", mlist.id, mlist.title, len(mlist.members))
             if len(mlist.aliases) > 0:
-                LOGGER.debug("Including %s: %s", mlist.id, mlist.title)
+                self.logger.debug("Including %s: %s", mlist.id, mlist.title)
                 all_lists.append(mlist)
             else:
-                LOGGER.debug("Excluding %s: %s", mlist.id, mlist.title)
+                self.logger.debug("Excluding %s: %s", mlist.id, mlist.title)
             if limit is not None and count >= limit:
                 break
         return all_lists
@@ -125,8 +124,8 @@ class GoogleDirectory(object):
     def __init__(self, service: Any, domain: str, readonly: bool = False) -> None:
         self.service = service
         self.domain = domain
-        self.logger = LOGGER.getChild('GoogleDirectory')
         self.readonly = readonly
+        self.logger = logging.getLogger('GoogleDirectory')
         if self.readonly:
             self.logger = self.logger.getChild('READONLY')
 
@@ -134,7 +133,7 @@ class GoogleDirectory(object):
         """Syncronize mailing lists with Google"""
         self.delete_removed_groups(groups)
         for group in groups:
-            self.logger.info("Synchronizing group %s", group.address)
+            self.logger.debug("Synchronizing group %s", group.address)
             self.sync_group_info(group)
             self.sync_group_aliases(group)
             self.sync_group_members(group)
@@ -158,7 +157,7 @@ class GoogleDirectory(object):
         try:
             result = self.service.groups().get(groupKey=group_key).execute()
             if result.get('name') == group.title and result.get('description') == group.description:
-                self.logger.info("Group %s up to date", group_key)
+                self.logger.debug("Group %s up to date", group_key)
             else:
                 if not self.readonly:
                     result = self.service.groups().update(groupKey=group_key, body=group_body).execute()
@@ -262,7 +261,6 @@ class GoogleDirectory(object):
 
 def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) -> Credentials:
     """Authenticate installed applications with Google"""
-    logger = LOGGER.getChild('google_auth_installed')
     try:
         with open(token_file, 'rt') as token_file:
             token_data = json.load(token_file)
@@ -285,7 +283,7 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
         }
         with open(token_file, 'wt') as token_file:
             json.dump(token_data, token_file)
-        logger.info("Credentials saved to %s", token_file)
+        logging.info("Credentials saved to %s", token_file)
     return credentials
 
 
@@ -340,8 +338,15 @@ def main() -> None:
                         help="Enable debugging output")
     args = parser.parse_args()
 
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+        logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
+        logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.DEBUG)
+        logging.getLogger('googleapiclient.discovery').setLevel(logging.DEBUG)
 
     config = configparser.ConfigParser()
     config['scoutnet'] = DEFAULT_CONFIG_SCOUTNET
@@ -359,9 +364,6 @@ def main() -> None:
             sys.exit(-1)
         service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
         directory = GoogleDirectory(service, config['google']['domain'], args.dry_run)
-
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
 
     # Configure Scoutnet
     scoutnet = Scoutnet(api_endpoint=config['scoutnet']['api_endpoint'],
