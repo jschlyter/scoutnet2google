@@ -313,6 +313,11 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description='Convert DNS zonefile to JSON')
 
+    parser.add_argument('--limit',
+                        dest='limit',
+                        metavar='N',
+                        type=int,
+                        help='Only process n groups (dangerous!)')
     parser.add_argument('--output',
                         dest='output',
                         metavar='filename',
@@ -346,10 +351,6 @@ def main() -> None:
     config['google'] = DEFAULT_CONFIG_GOOGLE
     config.read(DEFAULT_CONFIG_FILE)
 
-    limit: Optional[Union[int, str]] = config['scoutnet'].get('limit')
-    if limit is not None:
-        limit = int(limit)
-
     if not args.skip_google:
         # Authenticate with Google
         if config['google']['auth'] == 'installed':
@@ -369,7 +370,7 @@ def main() -> None:
                         domain=config['google']['domain'])
 
     # Fetch all mailing lists from Scoutnet
-    all_lists = scoutnet.get_all_lists(limit)
+    all_lists = scoutnet.get_all_lists(args.limit)
 
     # Optionally output all groups to file
     if args.output:
