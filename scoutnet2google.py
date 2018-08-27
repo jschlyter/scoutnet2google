@@ -102,6 +102,23 @@ class Scoutnet(object):
                                    title=list_data.get('title'),
                                    description=list_data.get('description'))
 
+    def get_all_lists(self, limit: int = None) -> List[ScoutnetMailinglist]:
+        """Fetch all mailing lists from Scoutnet"""
+        all_lists = []
+        count = 0
+        for (clist, cdata) in self.customlists().items():
+            count += 1
+            mlist = self.get_list(cdata)
+            LOGGER.info("Fetched %s: %s", mlist.id, mlist.title)
+            if len(mlist.aliases) > 0:
+                LOGGER.debug("Including %s: %s", mlist.id, mlist.title)
+                all_lists.append(mlist)
+            else:
+                LOGGER.debug("Excluding %s: %s", mlist.id, mlist.title)
+            if limit is not None and count >= limit:
+                break
+        return all_lists
+
 
 class GoogleDirectory(object):
 
@@ -329,7 +346,6 @@ def main() -> None:
     config['google'] = DEFAULT_CONFIG_GOOGLE
     config.read(DEFAULT_CONFIG_FILE)
 
-    count = 0
     limit: Optional[Union[int, str]] = config['scoutnet'].get('limit')
     if limit is not None:
         limit = int(limit)
@@ -353,18 +369,7 @@ def main() -> None:
                         domain=config['google']['domain'])
 
     # Fetch all mailing lists from Scoutnet
-    all_lists = []
-    for (clist, cdata) in scoutnet.customlists().items():
-        count += 1
-        mlist = scoutnet.get_list(cdata)
-        LOGGER.info("Fetched %s: %s", mlist.id, mlist.title)
-        if len(mlist.aliases) > 0:
-            LOGGER.debug("Including %s: %s", mlist.id, mlist.title)
-            all_lists.append(mlist)
-        else:
-            LOGGER.debug("Excluding %s: %s", mlist.id, mlist.title)
-        if limit is not None and count >= limit:
-            break
+    all_lists = scoutnet.get_all_lists(limit)
 
     # Optionally output all groups to file
     if args.output:
