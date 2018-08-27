@@ -105,10 +105,13 @@ class Scoutnet(object):
 
 class GoogleDirectory(object):
 
-    def __init__(self, service: Any, domain: str) -> None:
+    def __init__(self, service: Any, domain: str, readonly: bool = False) -> None:
         self.service = service
         self.domain = domain
         self.logger = LOGGER.getChild('GoogleDirectory')
+        self.readonly = readonly
+        if self.readonly:
+            self.logger = self.logger.getChild('READONLY')
 
     def sync_groups(self, groups: List[GoogleGroup]) -> None:
         """Syncronize mailing lists with Google"""
@@ -124,7 +127,8 @@ class GoogleDirectory(object):
         old_groups = current_groups - set([group.address for group in groups])
         for group_key in old_groups:
             self.logger.info("Deleting group %s", group_key)
-            self.service.groups().delete(groupKey=group_key).execute()
+            if not self.readonly:
+                self.service.groups().delete(groupKey=group_key).execute()
 
     def sync_group_info(self, group: GoogleGroup) -> None:
         """Update/create group information"""
@@ -139,21 +143,23 @@ class GoogleDirectory(object):
             if result.get('name') == group.title and result.get('description') == group.description:
                 self.logger.info("Group %s up to date", group_key)
             else:
-                result = self.service.groups().update(groupKey=group_key, body=group_body).execute()
+                if not self.readonly:
+                    result = self.service.groups().update(groupKey=group_key, body=group_body).execute()
                 self.logger.info("Group %s updated", group_key)
         except Exception as exc:
             self.logger.debug("Exception: %s", str(exc))
             self.logger.warning("Group %s not found, will create", group_key)
             self.logger.debug("Creating group %s: %s", group_key, group_body)
-            group = self.service.groups().insert(body=group_body).execute()
-            try:
-                group = self.service.groups().get(groupKey=group_key).execute()
-                print(group)
-            except Exception as exc:
-                self.logger.debug("Exception: %s", str(exc))
-                self.logger.warning("Group %s not found once created, taking a short nap and retry", group_key)
-                time.sleep(CREATE_NAP)
-                group = self.service.groups().get(groupKey=group_key).execute()
+            if not self.readonly:
+                group = self.service.groups().insert(body=group_body).execute()
+                try:
+                    group = self.service.groups().get(groupKey=group_key).execute()
+                    print(group)
+                except Exception as exc:
+                    self.logger.debug("Exception: %s", str(exc))
+                    self.logger.warning("Group %s not found once created, taking a short nap and retry", group_key)
+                    time.sleep(CREATE_NAP)
+                    group = self.service.groups().get(groupKey=group_key).execute()
             self.logger.info("Group %s created", group_key)
 
     def sync_group_aliases(self, group: GoogleGroup) -> None:
@@ -167,12 +173,14 @@ class GoogleDirectory(object):
         for alias in set(group.aliases) - current_group_aliases:
             self.logger.info("Adding alias: %s", alias)
             alias_body = {'alias': alias}
-            result = self.service.groups().aliases().insert(groupKey=group_key, body=alias_body).execute()
-            print(result)
+            if not self.readonly:
+                result = self.service.groups().aliases().insert(groupKey=group_key, body=alias_body).execute()
+                self.logger.debug("Insert result: %s", result)
         for alias in current_group_aliases - set(group.aliases):
             self.logger.info("Removing alias: %s", alias)
-            result = self.service.groups().aliases().delete(groupKey=group_key, alias=alias).execute()
-            print(result)
+            if not self.readonly:
+                result = self.service.groups().aliases().delete(groupKey=group_key, alias=alias).execute()
+                self.logger.debug("Delete result: %s", result)
 
     def sync_group_members(self, group: GoogleGroup) -> None:
         group_key = group.address
@@ -180,20 +188,22 @@ class GoogleDirectory(object):
         current_members = set(self.get_all_members(group_key))
         new_members = members - current_members
         old_members = current_members - members
-        self.logger.debug(f"Current group members: {current_members}")
-        self.logger.debug(f"New group members: {new_members}")
-        self.logger.debug(f"Old group members: {old_members}")
+        self.logger.debug("Current group members: %s", list(current_members))
+        self.logger.debug("New group members: %s", list(new_members))
+        self.logger.debug("Old group members: %s", list(old_members))
         for member_key in new_members:
             member_body = {'email': member_key}
             try:
-                self.service.members().insert(groupKey=group_key, body=member_body).execute()
+                if not self.readonly:
+                    self.service.members().insert(groupKey=group_key, body=member_body).execute()
                 self.logger.info("Added member %s to group %s", member_key, group_key)
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
                 self.logger.error("Failed to add %s to group %s", member_key, group_key)
         for member_key in old_members:
             try:
-                self.service.members().delete(groupKey=group_key, memberKey=member_key).execute()
+                if not self.readonly:
+                    self.service.members().delete(groupKey=group_key, memberKey=member_key).execute()
                 self.logger.info("Removed member %s from group %s", member_key, group_key)
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
@@ -294,6 +304,10 @@ def main() -> None:
                         dest='skip_google',
                         action='store_true',
                         help="Do not synchronize changes to Google Directory")
+    parser.add_argument('--dry-run',
+                        dest='dry_run',
+                        action='store_true',
+                        help="Test mode (no changes written)")
     parser.add_argument('--verbose',
                         dest='verbose',
                         action='store_true',
@@ -330,7 +344,7 @@ def main() -> None:
             LOGGER.critical("Unknown authentication method")
             sys.exit(-1)
         service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-        directory = GoogleDirectory(service, config['google']['domain'])
+        directory = GoogleDirectory(service, config['google']['domain'], args.dry_run)
 
     # Configure Scoutnet
     scoutnet = Scoutnet(api_endpoint=config['scoutnet']['api_endpoint'],
