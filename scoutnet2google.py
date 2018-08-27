@@ -109,7 +109,7 @@ class Scoutnet(object):
         for (clist, cdata) in self.customlists().items():
             count += 1
             mlist = self.get_list(cdata)
-            LOGGER.info("Fetched %s: %s", mlist.id, mlist.title)
+            LOGGER.info("Fetched %s: %s (%d members)", mlist.id, mlist.title, len(mlist.members))
             if len(mlist.aliases) > 0:
                 LOGGER.debug("Including %s: %s", mlist.id, mlist.title)
                 all_lists.append(mlist)
@@ -340,9 +340,6 @@ def main() -> None:
                         help="Enable debugging output")
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
@@ -362,6 +359,9 @@ def main() -> None:
             sys.exit(-1)
         service = googleapiclient.discovery.build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
         directory = GoogleDirectory(service, config['google']['domain'], args.dry_run)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     # Configure Scoutnet
     scoutnet = Scoutnet(api_endpoint=config['scoutnet']['api_endpoint'],
