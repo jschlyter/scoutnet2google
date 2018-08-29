@@ -78,11 +78,18 @@ class Scoutnet(object):
         response = self.session.get(url).json()
         email_addresses = set()
         data: Dict[str, Any] = response.get('data')
+        title = list_data.get('title')
         if len(data) > 0:
             for (_, member_data) in data.items():
                 if 'email' in member_data:
                     email = member_data['email']['value']
                     email_addresses.add(email.lower())
+                else:
+                    email = None
+                self.logger.debug("Adding member %s (%s %s) to list \"%s\"", email,
+                                  member_data['first_name']['value'],
+                                  member_data['last_name']['value'],
+                                  title)
                 if 'extra_emails' in member_data:
                     extra_emails = json.loads(member_data['extra_emails']['value'])
                     for email in extra_emails:
@@ -98,7 +105,7 @@ class Scoutnet(object):
         return ScoutnetMailinglist(id=list_data['list_email_key'],
                                    members=list(email_addresses),
                                    aliases=aliases,
-                                   title=list_data.get('title'),
+                                   title=title,
                                    description=list_data.get('description'))
 
     def get_all_lists(self, limit: int = None) -> List[ScoutnetMailinglist]:
