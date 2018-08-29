@@ -92,8 +92,9 @@ class Scoutnet(object):
                                   title)
                 if 'extra_emails' in member_data:
                     extra_emails = json.loads(member_data['extra_emails']['value'])
-                    for email in extra_emails:
-                        email_addresses.add(email.lower())
+                    for extra_mail in extra_emails:
+                        email_addresses.add(extra_mail.lower())
+                        self.logger.debug("Additional address %s for user %s", extra_mail, email)
         list_aliases = list_data.get('aliases', {})
         aliases = []
         if len(list_aliases) > 0:
