@@ -260,7 +260,9 @@ class GoogleDirectory(object):
         max_results = MAX_RESULTS
         while True:
             result = self.service.members().list(groupKey=group_key, pageToken=token, maxResults=max_results).execute()
-            all_members.extend(entry['email'].lower() for entry in result.get('members', []))
+            for member in result.get('members', []):
+                if 'email' in member:
+                    all_members.append(member.get('email').lower())
             token = result.get('nextPageToken')
             if token is None:
                 break
