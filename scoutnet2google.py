@@ -40,6 +40,9 @@ CREATE_NAP = 10
 SCOUTNET_RE_FILTER = '.*\\(Scoutnet\\)$'
 SCOUTNET_TAG = '(Scoutnet)'
 
+EMAIL_REWRITES = [
+    ('^(.+)@googlemail\.com$', '\\1@gmail.com')
+]
 
 
 @dataclass(frozen=True)
@@ -300,6 +303,7 @@ def google_auth_installed(secret_file: str, token_file: str, scopes: List[str]) 
 def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
     """Convert Scoutnet mailinglist to Google groups"""
     groups = []
+    members = []
     for address in mlist.aliases:
         if mlist.title is not None:
             title = f"{mlist.title} {SCOUTNET_TAG}"
@@ -309,8 +313,14 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
             description = re.sub("\n|\r|=", "", mlist.description.strip())
         else:
             description = None
+        for member in mlist.members:
+            for (pattern, repl) in EMAIL_REWRITES:
+                rewritten = re.sub(pattern, repl, member)
+                if rewritten != member:
+                    logging.debug("Address %s rewritten to %s", member, rewritten)
+                members.append(rewritten)
         groups.append(GoogleGroup(address=address,
-                                  members=mlist.members,
+                                  members=members,
                                   title=title,
                                   description=description))
     return groups
