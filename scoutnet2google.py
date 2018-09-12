@@ -181,12 +181,12 @@ class GoogleDirectory(object):
                 group = self.service.groups().insert(body=group_body).execute()
                 try:
                     group = self.service.groups().get(groupKey=group_key).execute()
-                    print(group)
                 except Exception as exc:
                     self.logger.debug("Exception: %s", str(exc))
                     self.logger.warning("Group %s not found once created, taking a short nap and retry", group_key)
                     time.sleep(CREATE_NAP)
                     group = self.service.groups().get(groupKey=group_key).execute()
+                self.logger.debug("Google returned group %s", group)
             self.logger.info("Group %s created", group_key)
 
     def sync_group_aliases(self, group: GoogleGroup) -> None:
