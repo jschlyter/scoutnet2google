@@ -307,6 +307,7 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
     for address in mlist.aliases:
         if mlist.title is not None:
             title = f"{mlist.title} {SCOUTNET_TAG}"
+            title = re.sub("@", "(a)", title)
         else:
             title = f"{mlist.id} {SCOUTNET_TAG}"
         if mlist.description is not None:
