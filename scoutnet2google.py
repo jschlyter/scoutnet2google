@@ -320,7 +320,7 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
                 if rewritten != member:
                     logging.debug("Address %s rewritten to %s", member, rewritten)
                 members.append(rewritten)
-        groups.append(GoogleGroup(address=address,
+        groups.append(GoogleGroup(address=address.lower(),
                                   members=members,
                                   title=title,
                                   description=description))
