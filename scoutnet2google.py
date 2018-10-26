@@ -94,7 +94,7 @@ class Scoutnet(object):
                                   member_data['last_name']['value'],
                                   title)
                 if 'extra_emails' in member_data:
-                    extra_emails = json.loads(member_data['extra_emails']['value'])
+                    extra_emails = member_data['extra_emails']['value']
                     for extra_mail in extra_emails:
                         email_addresses.add(extra_mail.lower())
                         self.logger.debug("Additional address %s for user %s", extra_mail, email)
