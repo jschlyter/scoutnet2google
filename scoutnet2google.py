@@ -68,19 +68,30 @@ class Scoutnet(object):
     def __init__(self, api_endpoint: str, api_id: str, api_key: str, domain: str) -> None:
         self.endpoint = api_endpoint
         self.session = requests.Session()
+        self.api_id = api_id
         self.session.auth = (api_id, api_key)
         self.domain = domain
         self.logger = logging.getLogger('Scoutnet')
 
     def customlists(self) -> Any:
-        response = self.session.get('{}/group/customlists'.format(self.endpoint))
-        return response.json()
+        url = f"{self.endpoint}/group/customlists"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json().get('Group').get(self.api_id)
+
+    def get_list_url(self, list_id: str) -> str:
+        return f"{self.endpoint}/group/customlists?list_id={list_id}"
 
     def get_list(self, list_data: dict) -> ScoutnetMailinglist:
-        url = list_data.get('link')
-        response = self.session.get(url).json()
+        #url = list_data.get('link')
+        list_id = list_data.get('id')
+        url = self.get_list_url(list_id)
+        if url is None:
+            raise ValueError("list url not found")
+        response = self.session.get(url)
+        response.raise_for_status()
         email_addresses = set()
-        data: Dict[str, Any] = response.get('data')
+        data: Dict[str, Any] = response.json().get('data')
         title = list_data.get('title')
         if len(data) > 0:
             for (_, member_data) in data.items():
@@ -116,9 +127,9 @@ class Scoutnet(object):
         """Fetch all mailing lists from Scoutnet"""
         all_lists = []
         count = 0
-        for (clist, cdata) in self.customlists().items():
+        for (list_id, list_data) in self.customlists().items():
             count += 1
-            mlist = self.get_list(cdata)
+            mlist = self.get_list(list_data)
             self.logger.info("Fetched %s: %s (%d members)", mlist.id, mlist.title, len(mlist.members))
             if len(mlist.aliases) > 0:
                 self.logger.debug("Including %s: %s", mlist.id, mlist.title)
