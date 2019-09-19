@@ -77,15 +77,16 @@ class Scoutnet(object):
         url = f"{self.endpoint}/group/customlists"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json().get('Group').get(self.api_id)
+        #return response.json().get('Group').get(self.api_id)
+        return response.json()
 
     def get_list_url(self, list_id: str) -> str:
         return f"{self.endpoint}/group/customlists?list_id={list_id}"
 
     def get_list(self, list_data: dict) -> ScoutnetMailinglist:
-        #url = list_data.get('link')
-        list_id = list_data.get('id')
-        url = self.get_list_url(list_id)
+        url = list_data.get('link')
+        #list_id = list_data.get('id')
+        #url = self.get_list_url(list_id)
         if url is None:
             raise ValueError("list url not found")
         response = self.session.get(url)
