@@ -342,7 +342,7 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
 def main() -> None:
     """main"""
 
-    parser = argparse.ArgumentParser(description='Convert DNS zonefile to JSON')
+    parser = argparse.ArgumentParser(description='Convert Scoutnet mailinglist to Google groups')
 
     parser.add_argument('--limit',
                         dest='limit',
