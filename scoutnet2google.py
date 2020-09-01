@@ -124,8 +124,8 @@ class Scoutnet(object):
                     self.logger.error("Invalid domain in alias: %s", alias)
         return ScoutnetMailinglist(
             id=list_data["list_email_key"],
-            members=list(email_addresses),
-            aliases=aliases,
+            members=sorted(list(email_addresses)),
+            aliases=sorted(aliases),
             title=title,
             description=list_data.get("description"),
         )
