@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "scoutnet2google"
+version = "0.1.0"
+description = ""
+authors = ["Jakob Schlyter <jakob@schlyter.se>"]
+license = "BSD"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+google-api-python-client = "^1.12.8"
+google-auth-oauthlib = "^0.4.2"
+requests = "^2.25.0"
+oauth2client = "^4.1.3"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
