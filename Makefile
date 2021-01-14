@@ -4,13 +4,14 @@ CLEANFILES=	*.json
 all:
 
 container:
+	poetry build
 	docker build --pull -t scoutnet2google .
 
 test:
-	python3 scoutnet2google.py
+	poetry run scoutnet2google.py
 
 lint:
-	pylama *.py
+	poetry run pylama *.py
 
 clean:
 	rm -f $(CLEANFILES)
