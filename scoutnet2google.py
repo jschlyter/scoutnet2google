@@ -8,7 +8,7 @@ import re
 import sys
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import google.auth.compute_engine
 import googleapiclient.discovery
@@ -40,7 +40,7 @@ CREATE_NAP = 10
 SCOUTNET_RE_FILTER = ".*\\(Scoutnet\\)$"
 SCOUTNET_TAG = "(Scoutnet)"
 
-EMAIL_REWRITES = [("^(.+)@googlemail\.com$", "\\1@gmail.com")]
+EMAIL_REWRITES = [(r"^(.+)@googlemail\.com$", "\\1@gmail.com")]
 
 
 @dataclass(frozen=True)
@@ -451,7 +451,7 @@ def main() -> None:
         elif config["google"]["auth"] == "compute_engine":
             credentials = google.auth.compute_engine.Credentials()
         else:
-            LOGGER.critical("Unknown authentication method")
+            logging.critical("Unknown authentication method")
             sys.exit(-1)
         service = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials
