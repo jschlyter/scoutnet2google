@@ -1,8 +1,9 @@
 FROM python:3.8
 
-WORKDIR /scout
+WORKDIR /tmp
 COPY dist/*.whl .
 RUN pip install *.whl
 RUN rm *.whl
+
 WORKDIR /scout/conf
-CMD [ "python", "/scout/scoutnet2google.py" ]
+CMD [ "scoutnet2google" ]

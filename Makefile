@@ -4,6 +4,7 @@ CLEANFILES=	*.json
 all:
 
 container:
+	rm dist/*
 	poetry build
 	docker build --pull -t scoutnet2google .
 
