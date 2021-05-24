@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import configparser
 import json
@@ -8,13 +6,13 @@ import re
 import sys
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, List
 
 import google.auth.compute_engine
 import googleapiclient.discovery
-import requests
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from scoutnet import ScoutnetMailinglist, ScoutnetClient
 
 DEFAULT_CONFIG_FILE = "scoutnet2google.ini"
 
@@ -44,110 +42,12 @@ EMAIL_REWRITES = [(r"^(.+)@googlemail\.com$", "\\1@gmail.com")]
 
 
 @dataclass(frozen=True)
-class ScoutnetMailinglist:
-    id: str
-    title: str = None
-    description: str = None
-    aliases: List[str] = field(default_factory=list)
-    members: List[str] = field(default_factory=list)
-
-
-@dataclass(frozen=True)
 class GoogleGroup:
     address: str
     aliases: List[str] = field(default_factory=list)
     members: List[str] = field(default_factory=list)
     title: str = None
     description: str = None
-
-
-class Scoutnet(object):
-    def __init__(
-        self, api_endpoint: str, api_id: str, api_key: str, domain: str
-    ) -> None:
-        self.endpoint = api_endpoint
-        self.session = requests.Session()
-        self.api_id = api_id
-        self.session.auth = (api_id, api_key)
-        self.domain = domain
-        self.logger = logging.getLogger("Scoutnet")
-
-    def customlists(self) -> Any:
-        url = f"{self.endpoint}/group/customlists"
-        response = self.session.get(url)
-        response.raise_for_status()
-        # return response.json().get('Group').get(self.api_id)
-        return response.json()
-
-    def get_list_url(self, list_id: str) -> str:
-        return f"{self.endpoint}/group/customlists?list_id={list_id}"
-
-    def get_list(self, list_data: dict) -> ScoutnetMailinglist:
-        url = list_data.get("link")
-        # list_id = list_data.get('id')
-        # url = self.get_list_url(list_id)
-        if url is None:
-            raise ValueError("list url not found")
-        response = self.session.get(url)
-        response.raise_for_status()
-        email_addresses = set()
-        data: Dict[str, Any] = response.json().get("data")
-        title = list_data.get("title")
-        if len(data) > 0:
-            for (_, member_data) in data.items():
-                if "email" in member_data:
-                    email = member_data["email"]["value"]
-                    email_addresses.add(email.lower())
-                else:
-                    email = None
-                self.logger.debug(
-                    'Adding member %s (%s %s) to list "%s"',
-                    email,
-                    member_data["first_name"]["value"],
-                    member_data["last_name"]["value"],
-                    title,
-                )
-                if "extra_emails" in member_data:
-                    extra_emails = member_data["extra_emails"]["value"]
-                    for extra_mail in extra_emails:
-                        email_addresses.add(extra_mail.lower())
-                        self.logger.debug(
-                            "Additional address %s for user %s", extra_mail, email
-                        )
-        list_aliases = list_data.get("aliases", {})
-        aliases = []
-        if len(list_aliases) > 0:
-            for alias in list(set(list_aliases.values())):
-                if alias.endswith("@" + self.domain):
-                    aliases.append(alias)
-                else:
-                    self.logger.error("Invalid domain in alias: %s", alias)
-        return ScoutnetMailinglist(
-            id=list_data["list_email_key"],
-            members=sorted(list(email_addresses)),
-            aliases=sorted(aliases),
-            title=title,
-            description=list_data.get("description"),
-        )
-
-    def get_all_lists(self, limit: int = None) -> List[ScoutnetMailinglist]:
-        """Fetch all mailing lists from Scoutnet"""
-        all_lists = []
-        count = 0
-        for (list_id, list_data) in self.customlists().items():
-            count += 1
-            mlist = self.get_list(list_data)
-            self.logger.info(
-                "Fetched %s: %s (%d members)", mlist.id, mlist.title, len(mlist.members)
-            )
-            if len(mlist.aliases) > 0:
-                self.logger.debug("Including %s: %s", mlist.id, mlist.title)
-                all_lists.append(mlist)
-            else:
-                self.logger.debug("Excluding %s: %s", mlist.id, mlist.title)
-            if limit is not None and count >= limit:
-                break
-        return all_lists
 
 
 class GoogleDirectory(object):
@@ -373,11 +273,11 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
             description = re.sub("\n|\r|=", "", mlist.description.strip())
         else:
             description = None
-        for member in mlist.members:
+        for recipient in mlist.recipients:
             for (pattern, repl) in EMAIL_REWRITES:
-                rewritten = re.sub(pattern, repl, member)
-                if rewritten != member:
-                    logging.debug("Address %s rewritten to %s", member, rewritten)
+                rewritten = re.sub(pattern, repl, recipient)
+                if rewritten != recipient:
+                    logging.debug("Address %s rewritten to %s", recipient, rewritten)
                 members.append(rewritten)
         groups.append(
             GoogleGroup(
@@ -442,6 +342,8 @@ def main() -> None:
     config["google"] = DEFAULT_CONFIG_GOOGLE
     config.read(DEFAULT_CONFIG_FILE)
 
+    domain = config["google"]["domain"]
+
     if not args.skip_google:
         # Authenticate with Google
         if config["google"]["auth"] == "installed":
@@ -456,14 +358,13 @@ def main() -> None:
         service = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials
         )
-        directory = GoogleDirectory(service, config["google"]["domain"], args.dry_run)
+        directory = GoogleDirectory(service, domain, args.dry_run)
 
     # Configure Scoutnet
-    scoutnet = Scoutnet(
+    scoutnet = ScoutnetClient(
         api_endpoint=config["scoutnet"]["api_endpoint"],
         api_id=config["scoutnet"]["api_id"],
-        api_key=config["scoutnet"]["api_key"],
-        domain=config["google"]["domain"],
+        api_key_customlists=config["scoutnet"]["api_key"],
     )
 
     # Fetch all mailing lists from Scoutnet
@@ -478,12 +379,17 @@ def main() -> None:
 
     # Convert Scoutnet mailinglists to Google groups
     all_groups = []
-    for mlist in all_lists:
-        all_groups.extend(mailinglist2groups(mlist))
+    for mlist in all_lists.values():
+        groups = mailinglist2groups(mlist)
+        for group in groups:
+            if group.address.endswith("@" + domain):
+                all_groups.append(group)
+            else:
+                logging.warning("Ignored list with invalid domain: %s", group.address)
 
     # Syncronize with Google Directory
     if not args.skip_google:
-        directory.sync_groups(all_groups)
+        directory.sync_groups(sorted(all_groups, key=lambda g: g.address))
 
 
 if __name__ == "__main__":
