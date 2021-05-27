@@ -1,8 +1,13 @@
-FROM python:3.9
+FROM python:3.9 AS builder
+RUN pip3 install poetry
+WORKDIR /tmp
+COPY pyproject.toml poetry.lock *.py /tmp/
+RUN poetry build
 
+FROM python:3.9
 WORKDIR /scout
-COPY dist/*.whl .
+COPY --from=builder /tmp/dist/*.whl .
 RUN pip install *.whl
 RUN rm *.whl
 WORKDIR /scout/conf
-CMD [ "python", "/scout/scoutnet2google.py" ]
+ENTRYPOINT scoutnet2google
