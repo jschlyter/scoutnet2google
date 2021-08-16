@@ -6,4 +6,4 @@ if [ "$ROOT" = "." ]; then
 	ROOT=`pwd`
 fi
 
-docker run --rm -v $ROOT/conf:/scout/conf scoutnet2google
+docker run --rm -v $ROOT/conf:/scout/conf $@ scoutnet2google
