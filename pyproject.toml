@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scoutnet2google"
-version = "1.0.0"
+version = "1.0.1"
 description = "Scoutnet Google Workspace integration"
 authors = ["Jakob Schlyter <jakob@schlyter.se>"]
 license = "BSD-2-Clause"
