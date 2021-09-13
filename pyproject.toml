@@ -1,16 +1,17 @@
 [tool.poetry]
 name = "scoutnet2google"
-version = "1.0.0"
-description = ""
+version = "1.0.1"
+description = "Scoutnet Google Workspace integration"
 authors = ["Jakob Schlyter <jakob@schlyter.se>"]
-license = "BSD"
+license = "BSD-2-Clause"
+repository = "https://github.com/jschlyter/scoutnet2google"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-google-api-python-client = "^1.12.8"
-google-auth-oauthlib = "^0.4.2"
-requests = "^2.25.0"
-oauth2client = "^4.1.3"
+python = "^3.9"
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
+google-api-python-client = "^2.5.0"
+google-auth-httplib2 = "^0.1.0"
+google-auth-oauthlib = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
 pylama = "^7.7.1"
