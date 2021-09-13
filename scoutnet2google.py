@@ -50,6 +50,12 @@ class GoogleGroup:
     description: str = None
 
 
+@dataclass(frozen=True)
+class GoogleGroupMember:
+    id: str
+    email: str
+
+
 class GoogleDirectory(object):
     def __init__(self, service: Any, domain: str, readonly: bool = False) -> None:
         self.service = service
@@ -153,7 +159,9 @@ class GoogleDirectory(object):
     def sync_group_members(self, group: GoogleGroup) -> None:
         group_key = group.address
         members = set(group.members)
-        current_members = set(self.get_all_members(group_key))
+        all_members = self.get_all_members(group_key)
+        current_members = set([x.email for x in all_members])
+        email_to_id = {x.email: x.id for x in all_members}
         new_members = members - current_members
         old_members = current_members - members
         self.logger.debug("Current group members: %s", list(current_members))
@@ -170,7 +178,8 @@ class GoogleDirectory(object):
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
                 self.logger.error("Failed to add %s to group %s", member_key, group_key)
-        for member_key in old_members:
+        for member_email in old_members:
+            member_key = email_to_id[member_email]
             try:
                 if not self.readonly:
                     self.service.members().delete(
@@ -209,7 +218,7 @@ class GoogleDirectory(object):
                 break
         return all_groups
 
-    def get_all_members(self, group_key: str) -> List[str]:
+    def get_all_members(self, group_key: str) -> List[GoogleGroupMember]:
         """Get all members in group"""
         all_members: List[str] = []
         token = None
@@ -222,7 +231,11 @@ class GoogleDirectory(object):
             )
             for member in result.get("members", []):
                 if "email" in member:
-                    all_members.append(member.get("email").lower())
+                    all_members.append(
+                        GoogleGroupMember(
+                            id=member["id"], email=member.get("email").lower()
+                        )
+                    )
             token = result.get("nextPageToken")
             if token is None:
                 break
