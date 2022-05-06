@@ -3,36 +3,21 @@ import configparser
 import json
 import logging
 import re
-import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any, List
 
-import google.auth.compute_engine
+import google.oauth2
 import googleapiclient.discovery
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from scoutnet import ScoutnetMailinglist, ScoutnetClient
+from scoutnet import ScoutnetClient, ScoutnetMailinglist
 
 DEFAULT_CONFIG_FILE = "scoutnet2google.ini"
 
-DEFAULT_CONFIG_SCOUTNET = {
-    "api_endpoint": "https://www.scoutnet.se/api",
-    "api_id": "",
-    "api_key": "",
-}
+DEFAULT_CONFIG_SCOUTNET = {"api_endpoint": "https://www.scoutnet.se/api"}
 
-DEFAULT_CONFIG_GOOGLE = {
-    "auth": "standalone",
-    "domain": "",
-}
-
-SCOPES = ["https://www.googleapis.com/auth/admin.directory.group"]
 API_SERVICE_NAME = "admin"
 API_VERSION = "directory_v1"
 
-CLIENT_SECRETS_FILE = "client_secret.json"
-CLIENT_TOKEN_FILE = "client_token.json"
 MAX_RESULTS = 100
 CREATE_NAP = 10
 SCOUTNET_RE_FILTER = ".*\\(Scoutnet\\)$"
@@ -242,36 +227,6 @@ class GoogleDirectory(object):
         return all_members
 
 
-def google_auth_installed(
-    secret_file: str, token_file: str, scopes: List[str]
-) -> Credentials:
-    """Authenticate installed applications with Google"""
-    try:
-        with open(token_file, "rt") as token_file:
-            token_data = json.load(token_file)
-        credentials = Credentials(
-            None,
-            refresh_token=token_data.get("refresh_token"),
-            token_uri=token_data.get("token_uri"),
-            client_id=token_data.get("client_id"),
-            client_secret=token_data.get("client_secret"),
-        )
-    except Exception as exc:
-        logging.debug("Exception: %s", str(exc))
-        flow = InstalledAppFlow.from_client_secrets_file(secret_file, scopes)
-        credentials = flow.run_console()
-        token_data = {
-            "refresh_token": credentials.refresh_token,
-            "token_uri": credentials.token_uri,
-            "client_id": credentials.client_id,
-            "client_secret": credentials.client_secret,
-        }
-        with open(token_file, "wt") as token_file:
-            json.dump(token_data, token_file)
-        logging.info("Credentials saved to %s", token_file)
-    return credentials
-
-
 def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
     """Convert Scoutnet mailinglist to Google groups"""
     groups = []
@@ -352,22 +307,16 @@ def main() -> None:
 
     config = configparser.ConfigParser()
     config["scoutnet"] = DEFAULT_CONFIG_SCOUTNET
-    config["google"] = DEFAULT_CONFIG_GOOGLE
     config.read(DEFAULT_CONFIG_FILE)
 
     domain = config["google"]["domain"]
 
     if not args.skip_google:
-        # Authenticate with Google
-        if config["google"]["auth"] == "installed":
-            credentials = google_auth_installed(
-                CLIENT_SECRETS_FILE, CLIENT_TOKEN_FILE, SCOPES
+        credentials = (
+            google.oauth2.service_account.Credentials.from_service_account_file(
+                config["google"]["service_account_file"]
             )
-        elif config["google"]["auth"] == "compute_engine":
-            credentials = google.auth.compute_engine.Credentials()
-        else:
-            logging.critical("Unknown authentication method")
-            sys.exit(-1)
+        )
         service = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials
         )
