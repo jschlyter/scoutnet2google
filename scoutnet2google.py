@@ -273,7 +273,10 @@ def main() -> None:
         help="Only process n groups (dangerous!)",
     )
     parser.add_argument(
-        "--output", dest="output", metavar="filename", help="Write all groups to file"
+        "--output",
+        dest="output",
+        metavar="filename",
+        help="Write all Google groups to file",
     )
     parser.add_argument(
         "--skip-google",
@@ -332,13 +335,6 @@ def main() -> None:
     # Fetch all mailing lists from Scoutnet
     all_lists = scoutnet.get_all_lists(args.limit)
 
-    # Optionally output all groups to file
-    if args.output:
-        with open(args.output, "wt") as file:
-            file.write(
-                json.dumps([x.__dict__ for x in all_lists], sort_keys=True, indent=4)
-            )
-
     # Convert Scoutnet mailinglists to Google groups
     all_groups = []
     for mlist in all_lists.values():
@@ -348,6 +344,13 @@ def main() -> None:
                 all_groups.append(group)
             else:
                 logging.warning("Ignored list with invalid domain: %s", group.address)
+
+    # Optionally output all groups to file
+    if args.output:
+        with open(args.output, "wt") as file:
+            file.write(
+                json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4)
+            )
 
     # Syncronize with Google Directory
     if not args.skip_google:
