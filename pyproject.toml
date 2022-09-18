@@ -9,9 +9,9 @@ repository = "https://github.com/jschlyter/scoutnet2google"
 [tool.poetry.dependencies]
 python = "^3.9"
 scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
-google-api-python-client = "^2.5.0"
+google-api-python-client = "^2.61.0"
 google-auth-httplib2 = "^0.1.0"
-google-auth-oauthlib = "^0.4.4"
+google-auth-oauthlib = "^0.5.3"
 
 [tool.poetry.dev-dependencies]
 pylama = "^7"
