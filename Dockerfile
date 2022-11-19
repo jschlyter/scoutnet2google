@@ -7,7 +7,6 @@ RUN poetry build
 FROM python:3.10
 WORKDIR /scout
 COPY --from=builder /tmp/dist/*.whl .
-RUN pip install *.whl
-RUN rm *.whl
+RUN pip install *.whl && rm -f rm *.whl
 WORKDIR /scout/conf
 ENTRYPOINT scoutnet2google
