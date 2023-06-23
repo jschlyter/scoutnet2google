@@ -27,3 +27,24 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
 profile = "black"
+
+[tool.pylama.linter.pycodestyle]
+max_line_length = 120
+
+[tool.pylama.linter.mccabe]
+complexity = 40
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_calls = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_unused_configs = true
+no_implicit_optional = true
+strict_optional = true
