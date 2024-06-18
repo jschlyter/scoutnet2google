@@ -7,16 +7,14 @@ license = "BSD-2-Clause"
 repository = "https://github.com/jschlyter/scoutnet2google"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
-google-api-python-client = "^2.61.0"
-google-auth-httplib2 = "^0.1.0"
-google-auth-oauthlib = "^0.5.3"
+python = "^3.11"
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "pydantic"}
+google-api-python-client = ">=2.61.0"
+google-auth-httplib2 = ">=0.1.0"
+google-auth-oauthlib = ">=0.5.3"
 
-[tool.poetry.dev-dependencies]
-pylama = "^7"
-black = "^22"
-isort = "^5.10"
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.9"
 
 [tool.poetry.scripts]
 scoutnet2google = "scoutnet2google:main"
@@ -48,3 +46,24 @@ warn_unused_ignores = true
 warn_unused_configs = true
 no_implicit_optional = true
 strict_optional = true
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = ["E501", "I001", "SIM102"]
+exclude = ["examples/*"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true

@@ -10,7 +10,7 @@ test:
 	poetry run scoutnet2google.py
 
 lint:
-	poetry run pylama *.py
+	poetry run ruff check
 
 clean:
 	rm -f $(CLEANFILES)

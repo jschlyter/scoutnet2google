@@ -5,7 +5,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 
 import google.oauth2
 import googleapiclient.discovery
@@ -29,8 +29,8 @@ EMAIL_REWRITES = [(r"^(.+)@googlemail\.com$", "\\1@gmail.com")]
 @dataclass(frozen=True)
 class GoogleGroup:
     address: str
-    aliases: List[str] = field(default_factory=list)
-    members: List[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)
+    members: list[str] = field(default_factory=list)
     title: str = None
     description: str = None
 
@@ -41,7 +41,7 @@ class GoogleGroupMember:
     email: str
 
 
-class GoogleDirectory(object):
+class GoogleDirectory:
     def __init__(self, service: Any, domain: str, readonly: bool = False) -> None:
         self.service = service
         self.domain = domain
@@ -50,7 +50,7 @@ class GoogleDirectory(object):
         if self.readonly:
             self.logger = self.logger.getChild("READONLY")
 
-    def sync_groups(self, groups: List[GoogleGroup]) -> None:
+    def sync_groups(self, groups: list[GoogleGroup]) -> None:
         """Syncronize mailing lists with Google"""
         self.delete_removed_groups(groups)
         for group in groups:
@@ -59,7 +59,7 @@ class GoogleDirectory(object):
             self.sync_group_aliases(group)
             self.sync_group_members(group)
 
-    def delete_removed_groups(self, groups: List[GoogleGroup]) -> None:
+    def delete_removed_groups(self, groups: list[GoogleGroup]) -> None:
         current_groups = set(self.get_all_groups(SCOUTNET_RE_FILTER))
         old_groups = current_groups - set([group.address for group in groups])
         for group_key in old_groups:
@@ -179,9 +179,9 @@ class GoogleDirectory(object):
                     "Failed to delete %s from group %s", member_key, group_key
                 )
 
-    def get_all_groups(self, re_filter: str) -> List[str]:
+    def get_all_groups(self, re_filter: str) -> list[str]:
         """Get all groups matching filter"""
-        all_groups: List[str] = []
+        all_groups: list[str] = []
         token = None
         max_results = MAX_RESULTS
         while True:
@@ -203,9 +203,9 @@ class GoogleDirectory(object):
                 break
         return all_groups
 
-    def get_all_members(self, group_key: str) -> List[GoogleGroupMember]:
+    def get_all_members(self, group_key: str) -> list[GoogleGroupMember]:
         """Get all members in group"""
-        all_members: List[str] = []
+        all_members: list[str] = []
         token = None
         max_results = MAX_RESULTS
         while True:
@@ -227,7 +227,7 @@ class GoogleDirectory(object):
         return all_members
 
 
-def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
+def mailinglist2groups(mlist: ScoutnetMailinglist) -> list[GoogleGroup]:
     """Convert Scoutnet mailinglist to Google groups"""
     groups = []
     members = []
@@ -242,7 +242,7 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> List[GoogleGroup]:
         else:
             description = None
         for recipient in mlist.recipients:
-            for (pattern, repl) in EMAIL_REWRITES:
+            for pattern, repl in EMAIL_REWRITES:
                 rewritten = re.sub(pattern, repl, recipient)
                 if rewritten != recipient:
                     logging.debug("Address %s rewritten to %s", recipient, rewritten)
@@ -347,7 +347,7 @@ def main() -> None:
 
     # Optionally output all groups to file
     if args.output:
-        with open(args.output, "wt") as file:
+        with open(args.output, "w") as file:
             file.write(
                 json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4)
             )
