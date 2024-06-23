@@ -8,7 +8,7 @@ repository = "https://github.com/jschlyter/scoutnet2google"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "pydantic"}
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
 google-api-python-client = ">=2.61.0"
 google-auth-httplib2 = ">=0.1.0"
 google-auth-oauthlib = ">=0.5.3"
