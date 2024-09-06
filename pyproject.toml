@@ -23,15 +23,6 @@ scoutnet2google = "scoutnet2google:main"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.isort]
-profile = "black"
-
-[tool.pylama.linter.pycodestyle]
-max_line_length = 120
-
-[tool.pylama.linter.mccabe]
-complexity = 40
-
 [tool.mypy]
 ignore_missing_imports = true
 disallow_untyped_calls = false
