@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "scoutnet2google"
-version = "1.1.0"
+version = "1.2.0"
 description = "Scoutnet Google Workspace integration"
 authors = ["Jakob Schlyter <jakob@schlyter.se>"]
 license = "BSD-2-Clause"
 repository = "https://github.com/jschlyter/scoutnet2google"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
 google-api-python-client = ">=2.61.0"
 google-auth-httplib2 = ">=0.1.0"
