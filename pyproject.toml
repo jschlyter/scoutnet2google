@@ -1,27 +1,34 @@
-[tool.poetry]
+[project]
 name = "scoutnet2google"
 version = "1.2.0"
 description = "Scoutnet Google Workspace integration"
-authors = ["Jakob Schlyter <jakob@schlyter.se>"]
+authors = [{name="Jakob Schlyter", email = "jakob@schlyter.se"}]
 license = "BSD-2-Clause"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "google-api-python-client >=2.61.0",
+    "google-auth-httplib2 >=0.1.0",
+    "google-auth-oauthlib >=0.5.3",
+    "scoutnet>=1.2.1",
+]
+
+[tool.uv.sources]
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git" }
+
+[project.urls]
 repository = "https://github.com/jschlyter/scoutnet2google"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", rev = "main"}
-google-api-python-client = ">=2.61.0"
-google-auth-httplib2 = ">=0.1.0"
-google-auth-oauthlib = ">=0.5.3"
-
-[tool.poetry.group.dev.dependencies]
-ruff = ">=0.4.9"
-
-[tool.poetry.scripts]
+[project.scripts]
 scoutnet2google = "scoutnet2google:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.6",
+]
 
 [tool.mypy]
 ignore_missing_imports = true

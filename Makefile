@@ -7,10 +7,10 @@ container:
 	docker build --pull -t scoutnet2google .
 
 test:
-	poetry run scoutnet2google.py
+	uv run python scoutnet2google.py
 
 lint:
-	poetry run ruff check
+	uv run ruff check
 
 clean:
 	rm -f $(CLEANFILES)
