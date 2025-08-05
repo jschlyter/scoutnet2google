@@ -6,14 +6,14 @@ authors = [{name="Jakob Schlyter", email = "jakob@schlyter.se"}]
 license = "BSD-2-Clause"
 requires-python = ">=3.13,<4.0"
 dependencies = [
-    "google-api-python-client >=2.61.0",
-    "google-auth-httplib2 >=0.1.0",
-    "google-auth-oauthlib >=0.5.3",
-    "scoutnet>=1.2.1",
+    "google-api-python-client>=2.177.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.2",
+    "scoutnet",
 ]
 
 [tool.uv.sources]
-scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git" }
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", branch = "main" }
 
 [project.urls]
 repository = "https://github.com/jschlyter/scoutnet2google"
