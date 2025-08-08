@@ -9,6 +9,7 @@ dependencies = [
     "google-api-python-client>=2.177.0",
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.2",
+    "pydantic>=2.11.7",
     "scoutnet",
 ]
 
@@ -19,7 +20,7 @@ scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", branch = "
 repository = "https://github.com/jschlyter/scoutnet2google"
 
 [project.scripts]
-scoutnet2google = "scoutnet2google:main"
+scoutnet2google = "scoutnet2google.client:main"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]
