@@ -88,21 +88,38 @@ class GoogleDirectory:
         except Exception as exc:
             self.logger.debug("Exception: %s", str(exc))
             self.logger.warning("Group %s not found, will create", group_key)
-            self.logger.debug("Creating group %s: %s", group_key, group_body)
-            if not self.readonly:
-                group = self.service.groups().insert(body=group_body).execute()
-                try:
-                    group = self.service.groups().get(groupKey=group_key).execute()
-                except Exception as exc:
-                    self.logger.debug("Exception: %s", str(exc))
-                    self.logger.warning(
-                        "Group %s not found once created, taking a short nap and retry",
-                        group_key,
-                    )
-                    time.sleep(CREATE_DELAY)
-                    group = self.service.groups().get(groupKey=group_key).execute()
-                self.logger.debug("Google returned group %s", group)
+            self.create_group(group)
             self.logger.info("Group %s created", group_key)
+
+    def create_group(self, group: GoogleGroup) -> None:
+        """Create group"""
+
+        group_key = group.address
+        group_body = {
+            "email": group.address,
+            "name": group.title,
+            "description": group.description,
+        }
+
+        self.logger.debug("Creating group %s: %s", group_key, group_body)
+
+        if not self.readonly:
+            group = self.service.groups().insert(body=group_body).execute()
+
+            try:
+                group = self.service.groups().get(groupKey=group_key).execute()
+            except Exception as exc:
+                self.logger.debug("Exception: %s", str(exc))
+                self.logger.warning(
+                    "Group %s not found once created, taking a short nap and retry",
+                    group_key,
+                )
+                time.sleep(CREATE_DELAY)
+                group = self.service.groups().get(groupKey=group_key).execute()
+
+            self.logger.debug("Google returned group %s", group)
+
+        self.logger.info("Group %s created", group_key)
 
     def sync_group_aliases(self, group: GoogleGroup) -> None:
         """Update/create group information"""
