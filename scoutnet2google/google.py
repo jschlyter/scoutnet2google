@@ -40,7 +40,7 @@ class GoogleDirectory:
             self.logger = self.logger.getChild("READONLY")
 
     def sync_groups(self, groups: list[GoogleGroup]) -> None:
-        """Syncronize mailing lists with Google"""
+        """Synchronize mailing lists with Google"""
 
         self.delete_removed_groups(groups)
         for group in groups:
