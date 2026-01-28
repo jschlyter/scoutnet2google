@@ -69,7 +69,7 @@ class GoogleDirectory:
         self.delete_removed_groups(groups)
         for group in groups:
             self.logger.info("Synchronizing group %s", group.email)
-            self.sync_group_info(group)
+            self.sync_group_information(group)
             self.sync_group_settings(group)
             self.sync_group_aliases(group)
             self.sync_group_members(group)
@@ -85,7 +85,7 @@ class GoogleDirectory:
             if not self.readonly:
                 self.admin_service.groups().delete(groupKey=group_key).execute()
 
-    def sync_group_info(self, group: GoogleGroup) -> None:
+    def sync_group_information(self, group: GoogleGroup) -> None:
         """Update/create group information"""
 
         group_key = group.email
@@ -96,11 +96,11 @@ class GoogleDirectory:
             group_info = GoogleGroup.model_validate(result)
 
             if group_info.name == group.name and group_info.description == group.description:
-                self.logger.debug("Group %s up to date", group_key)
+                self.logger.debug("Group information for %s up to date", group_key)
             else:
                 if not self.readonly:
                     result = self.admin_service.groups().update(groupKey=group_key, body=group_body).execute()
-                self.logger.info("Group %s updated", group_key)
+                self.logger.warning("Group information for %s updated", group_key)
         except Exception as exc:
             self.logger.debug("Exception: %s", str(exc))
             self.logger.warning("Group %s not found, will create", group_key)
@@ -124,7 +124,7 @@ class GoogleDirectory:
                     .update(groupUniqueId=group_key, body=group_settings_body)
                     .execute()
                 )
-            self.logger.info("Group settings for %s updated", group_key)
+            self.logger.warning("Group settings for %s updated", group_key)
 
     def create_group(self, group: GoogleGroup) -> None:
         """Create group"""
