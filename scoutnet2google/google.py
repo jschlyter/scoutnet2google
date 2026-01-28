@@ -56,12 +56,8 @@ class GoogleDirectory:
     def __init__(self, domain: str, credentials: Any, readonly: bool = False) -> None:
         self.domain = domain
 
-        self.admin_service = googleapiclient.discovery.build(
-            "admin", "directory_v1", credentials=credentials
-        )
-        self.group_settings_service = googleapiclient.discovery.build(
-            "groupssettings", "v1", credentials=credentials
-        )
+        self.admin_service = googleapiclient.discovery.build("admin", "directory_v1", credentials=credentials)
+        self.group_settings_service = googleapiclient.discovery.build("groupssettings", "v1", credentials=credentials)
         self.readonly = readonly
         self.logger = logging.getLogger("GoogleDirectory")
         if self.readonly:
@@ -99,18 +95,11 @@ class GoogleDirectory:
             result = self.admin_service.groups().get(groupKey=group_key).execute()
             group_info = GoogleGroup.model_validate(result)
 
-            if (
-                group_info.name == group.name
-                and group_info.description == group.description
-            ):
+            if group_info.name == group.name and group_info.description == group.description:
                 self.logger.debug("Group %s up to date", group_key)
             else:
                 if not self.readonly:
-                    result = (
-                        self.admin_service.groups()
-                        .update(groupKey=group_key, body=group_body)
-                        .execute()
-                    )
+                    result = self.admin_service.groups().update(groupKey=group_key, body=group_body).execute()
                 self.logger.info("Group %s updated", group_key)
         except Exception as exc:
             self.logger.debug("Exception: %s", str(exc))
@@ -123,9 +112,7 @@ class GoogleDirectory:
         group_key = group.email
         group_settings_body = group.settings.get_api_body()
 
-        result = (
-            self.group_settings_service.groups().get(groupUniqueId=group_key).execute()
-        )
+        result = self.group_settings_service.groups().get(groupUniqueId=group_key).execute()
         group_settings = GoogleGroupSettings.model_validate(result)
 
         if group_settings == group.settings:
@@ -170,37 +157,21 @@ class GoogleDirectory:
 
         group_key = group.email
 
-        result = (
-            self.admin_service.groups().aliases().list(groupKey=group_key).execute()
-        )
+        result = self.admin_service.groups().aliases().list(groupKey=group_key).execute()
 
-        current_group_aliases = (
-            set(entry["alias"] for entry in result.get("aliases", []))
-            if result
-            else set()
-        )
+        current_group_aliases = set(entry["alias"] for entry in result.get("aliases", [])) if result else set()
 
         for alias in set(group.aliases) - current_group_aliases:
             self.logger.info("Adding alias: %s", alias)
             alias_body = {"alias": alias}
             if not self.readonly:
-                result = (
-                    self.admin_service.groups()
-                    .aliases()
-                    .insert(groupKey=group_key, body=alias_body)
-                    .execute()
-                )
+                result = self.admin_service.groups().aliases().insert(groupKey=group_key, body=alias_body).execute()
                 self.logger.debug("Insert result: %s", result)
 
         for alias in current_group_aliases - set(group.aliases):
             self.logger.info("Removing alias: %s", alias)
             if not self.readonly:
-                result = (
-                    self.admin_service.groups()
-                    .aliases()
-                    .delete(groupKey=group_key, alias=alias)
-                    .execute()
-                )
+                result = self.admin_service.groups().aliases().delete(groupKey=group_key, alias=alias).execute()
                 self.logger.debug("Delete result: %s", result)
 
     def sync_group_members(self, group: GoogleGroup) -> None:
@@ -224,9 +195,7 @@ class GoogleDirectory:
             member_body = {"email": member_key}
             try:
                 if not self.readonly:
-                    self.admin_service.members().insert(
-                        groupKey=group_key, body=member_body
-                    ).execute()
+                    self.admin_service.members().insert(groupKey=group_key, body=member_body).execute()
                 self.logger.info("Added member %s to group %s", member_key, group_key)
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
@@ -236,17 +205,11 @@ class GoogleDirectory:
             member_key = email_to_id[member_email]
             try:
                 if not self.readonly:
-                    self.admin_service.members().delete(
-                        groupKey=group_key, memberKey=member_key
-                    ).execute()
-                self.logger.info(
-                    "Removed member %s from group %s", member_key, group_key
-                )
+                    self.admin_service.members().delete(groupKey=group_key, memberKey=member_key).execute()
+                self.logger.info("Removed member %s from group %s", member_key, group_key)
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
-                self.logger.error(
-                    "Failed to delete %s from group %s", member_key, group_key
-                )
+                self.logger.error("Failed to delete %s from group %s", member_key, group_key)
 
     def get_all_groups(self, re_filter: re.Pattern) -> list[str]:
         """Get all groups matching filter"""
@@ -257,9 +220,7 @@ class GoogleDirectory:
 
         while True:
             result = (
-                self.admin_service.groups()
-                .list(domain=self.domain, pageToken=token, maxResults=max_results)
-                .execute()
+                self.admin_service.groups().list(domain=self.domain, pageToken=token, maxResults=max_results).execute()
             )
             for group in result.get("groups", []):
                 group_address = group["email"]
@@ -284,17 +245,11 @@ class GoogleDirectory:
 
         while True:
             result = (
-                self.admin_service.members()
-                .list(groupKey=group_key, pageToken=token, maxResults=max_results)
-                .execute()
+                self.admin_service.members().list(groupKey=group_key, pageToken=token, maxResults=max_results).execute()
             )
             for member in result.get("members", []):
                 if "email" in member:
-                    all_members.append(
-                        GoogleGroupMember(
-                            id=member["id"], email=member.get("email").lower()
-                        )
-                    )
+                    all_members.append(GoogleGroupMember(id=member["id"], email=member.get("email").lower()))
             token = result.get("nextPageToken")
             if token is None:
                 break

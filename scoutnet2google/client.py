@@ -14,9 +14,7 @@ from .scoutnet import mailinglist2groups
 def main() -> None:
     """main"""
 
-    parser = argparse.ArgumentParser(
-        description="Convert Scoutnet mailinglist to Google groups"
-    )
+    parser = argparse.ArgumentParser(description="Convert Scoutnet mailinglist to Google groups")
 
     parser.add_argument(
         "--limit",
@@ -43,12 +41,8 @@ def main() -> None:
         action="store_true",
         help="Test mode (no changes written)",
     )
-    parser.add_argument(
-        "--verbose", dest="verbose", action="store_true", help="Enable verbose output"
-    )
-    parser.add_argument(
-        "--debug", dest="debug", action="store_true", help="Enable debugging output"
-    )
+    parser.add_argument("--verbose", dest="verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--debug", dest="debug", action="store_true", help="Enable debugging output")
     args = parser.parse_args()
 
     if args.verbose:
@@ -68,10 +62,8 @@ def main() -> None:
     domain = config["google"]["domain"]
 
     if not args.skip_google:
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_file(
-                config["google"]["service_account_file"]
-            )
+        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
+            config["google"]["service_account_file"]
         )
         directory = GoogleDirectory(domain, credentials, args.dry_run)
 
@@ -98,9 +90,7 @@ def main() -> None:
     # Optionally output all groups to file
     if args.output:
         with open(args.output, "w") as file:
-            file.write(
-                json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4)
-            )
+            file.write(json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4))
 
     # Syncronize with Google Directory
     if not args.skip_google:
