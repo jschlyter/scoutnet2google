@@ -35,9 +35,9 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> list[GoogleGroup]:
 
         groups.append(
             GoogleGroup(
-                address=address.lower(),
+                email=address.lower(),
                 members=members,
-                title=title,
+                name=title,
                 description=description,
             )
         )
