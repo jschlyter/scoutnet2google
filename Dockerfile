@@ -1,4 +1,4 @@
-FROM python:3.13-bookworm AS builder
+FROM python:3.13 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache \
     dist/*.whl
 
 
-FROM python:3.13-slim-bookworm
+FROM python:3.13-slim
 COPY --from=builder /env /env
 COPY --from=builder /app /app
 ENV PYTHONPATH=/app:/env
