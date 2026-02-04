@@ -20,11 +20,7 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> list[GoogleGroup]:
         else:
             title = f"{mlist.id} {SCOUTNET_TAG}"
 
-        description = (
-            re.sub(r"\n|\r|=", "", mlist.description.strip())
-            if mlist.description
-            else ""
-        )
+        description = re.sub(r"\n|\r|=", "", mlist.description.strip()) if mlist.description else ""
 
         for recipient in mlist.recipients or []:
             for pattern, repl in EMAIL_REWRITES:
@@ -35,9 +31,9 @@ def mailinglist2groups(mlist: ScoutnetMailinglist) -> list[GoogleGroup]:
 
         groups.append(
             GoogleGroup(
-                address=address.lower(),
+                email=address.lower(),
                 members=members,
-                title=title,
+                name=title,
                 description=description,
             )
         )

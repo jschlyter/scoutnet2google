@@ -4,15 +4,9 @@ import json
 import logging
 
 import google.oauth2
-import googleapiclient.discovery
 from scoutnet import ScoutnetClient
 
-from . import (
-    API_SERVICE_NAME,
-    API_VERSION,
-    DEFAULT_CONFIG_FILE,
-    DEFAULT_CONFIG_SCOUTNET,
-)
+from . import DEFAULT_CONFIG_FILE, DEFAULT_CONFIG_SCOUTNET
 from .google import GoogleDirectory
 from .scoutnet import mailinglist2groups
 
@@ -20,9 +14,7 @@ from .scoutnet import mailinglist2groups
 def main() -> None:
     """main"""
 
-    parser = argparse.ArgumentParser(
-        description="Convert Scoutnet mailinglist to Google groups"
-    )
+    parser = argparse.ArgumentParser(description="Convert Scoutnet mailinglist to Google groups")
 
     parser.add_argument(
         "--limit",
@@ -49,12 +41,8 @@ def main() -> None:
         action="store_true",
         help="Test mode (no changes written)",
     )
-    parser.add_argument(
-        "--verbose", dest="verbose", action="store_true", help="Enable verbose output"
-    )
-    parser.add_argument(
-        "--debug", dest="debug", action="store_true", help="Enable debugging output"
-    )
+    parser.add_argument("--verbose", dest="verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--debug", dest="debug", action="store_true", help="Enable debugging output")
     args = parser.parse_args()
 
     if args.verbose:
@@ -74,15 +62,10 @@ def main() -> None:
     domain = config["google"]["domain"]
 
     if not args.skip_google:
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_file(
-                config["google"]["service_account_file"]
-            )
+        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
+            config["google"]["service_account_file"]
         )
-        service = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials
-        )
-        directory = GoogleDirectory(service, domain, args.dry_run)
+        directory = GoogleDirectory(domain, credentials, args.dry_run)
 
     # Configure Scoutnet
     scoutnet = ScoutnetClient(
@@ -99,21 +82,19 @@ def main() -> None:
     for mlist in all_lists.values():
         groups = mailinglist2groups(mlist)
         for group in groups:
-            if group.address.endswith("@" + domain):
+            if group.email.endswith("@" + domain):
                 all_groups.append(group)
             else:
-                logging.warning("Ignored list with invalid domain: %s", group.address)
+                logging.warning("Ignored list with invalid domain: %s", group.email)
 
     # Optionally output all groups to file
     if args.output:
         with open(args.output, "w") as file:
-            file.write(
-                json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4)
-            )
+            file.write(json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4))
 
     # Syncronize with Google Directory
     if not args.skip_google:
-        directory.sync_groups(sorted(all_groups, key=lambda g: g.address))
+        directory.sync_groups(sorted(all_groups, key=lambda g: g.email))
 
 
 if __name__ == "__main__":

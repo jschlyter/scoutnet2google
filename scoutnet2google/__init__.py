@@ -13,6 +13,3 @@ SCOUTNET_RE_FILTER = re.compile(r".*\(Scoutnet\)$")
 SCOUTNET_TAG = "(Scoutnet)"
 
 EMAIL_REWRITES = [(re.compile(r"^(.+)@googlemail\.com$"), "\\1@gmail.com")]
-
-API_SERVICE_NAME = "admin"
-API_VERSION = "directory_v1"

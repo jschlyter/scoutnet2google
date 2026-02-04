@@ -52,6 +52,10 @@ warn_unused_configs = true
 no_implicit_optional = true
 strict_optional = true
 
+[tool.ruff]
+line-length = 120
+required-version = ">=0.6.8"
+
 [tool.ruff.lint]
 select = [
     # pycodestyle
