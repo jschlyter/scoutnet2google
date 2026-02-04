@@ -9,7 +9,7 @@ from pydantic.alias_generators import to_camel
 
 from . import SCOUTNET_RE_FILTER
 
-MAX_RESULTS = 100
+MAX_RESULTS = 1000
 CREATE_DELAY = 10
 
 
@@ -178,10 +178,10 @@ class GoogleDirectory:
         """Sync group members"""
 
         group_key = group.email
-        members = set(group.members)
+        members = set([x.lower() for x in group.members])
 
         all_members = self.get_all_members(group_key)
-        current_members = set([x.email for x in all_members])
+        current_members = set([x.email.lower() for x in all_members])
         email_to_id = {x.email: x.id for x in all_members}
 
         new_members = members - current_members
@@ -191,25 +191,35 @@ class GoogleDirectory:
         self.logger.debug("New group members: %s", list(new_members))
         self.logger.debug("Old group members: %s", list(old_members))
 
-        for member_key in new_members:
-            member_body = {"email": member_key}
-            try:
-                if not self.readonly:
-                    self.admin_service.members().insert(groupKey=group_key, body=member_body).execute()
-                self.logger.info("Added member %s to group %s", member_key, group_key)
-            except Exception as exc:
-                self.logger.debug("Exception: %s", str(exc))
-                self.logger.error("Failed to add %s to group %s", member_key, group_key)
-
         for member_email in old_members:
             member_key = email_to_id[member_email]
             try:
                 if not self.readonly:
                     self.admin_service.members().delete(groupKey=group_key, memberKey=member_key).execute()
-                self.logger.info("Removed member %s from group %s", member_key, group_key)
+                self.logger.info("Removed member %s (%s) from group %s", member_email, member_key, group_key)
             except Exception as exc:
                 self.logger.debug("Exception: %s", str(exc))
-                self.logger.error("Failed to delete %s from group %s", member_key, group_key)
+                self.logger.error(
+                    "Failed to delete %s (%s) from group %s",
+                    member_email,
+                    member_key,
+                    member_email,
+                    group_key,
+                )
+
+        for member_email in new_members:
+            member_body = {"email": member_email}
+            try:
+                if not self.readonly:
+                    self.admin_service.members().insert(groupKey=group_key, body=member_body).execute()
+                self.logger.info("Added member %s to group %s", member_email, group_key)
+            except Exception as exc:
+                self.logger.debug("Exception: %s", str(exc))
+                self.logger.error(
+                    "Failed to add %s to group %s",
+                    member_email,
+                    group_key,
+                )
 
     def get_all_groups(self, re_filter: re.Pattern) -> list[str]:
         """Get all groups matching filter"""
@@ -249,7 +259,7 @@ class GoogleDirectory:
             )
             for member in result.get("members", []):
                 if "email" in member:
-                    all_members.append(GoogleGroupMember(id=member["id"], email=member.get("email").lower()))
+                    all_members.append(GoogleGroupMember.model_validate(member))
             token = result.get("nextPageToken")
             if token is None:
                 break
