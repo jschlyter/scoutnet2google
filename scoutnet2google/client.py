@@ -90,7 +90,7 @@ def main() -> None:
     # Optionally output all groups to file
     if args.output:
         with open(args.output, "w") as file:
-            file.write(json.dumps([x.__dict__ for x in all_groups], sort_keys=True, indent=4))
+            file.write(json.dumps([x.get_export() for x in all_groups], sort_keys=True, indent=4))
 
     # Syncronize with Google Directory
     if not args.skip_google:

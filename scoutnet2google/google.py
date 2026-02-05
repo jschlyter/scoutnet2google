@@ -37,6 +37,15 @@ class GoogleGroup(BaseModel):
 
     settings: GoogleGroupSettings = Field(default=GoogleGroupSettings())
 
+    def get_export(self) -> dict[str, str | list[str]]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "email": self.email,
+            "aliases": self.aliases,
+            "members": self.members,
+        }
+
     def get_api_body(self) -> dict[str, str]:
         return {
             "email": self.email,
