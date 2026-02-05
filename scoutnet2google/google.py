@@ -39,9 +39,9 @@ class GoogleGroup(BaseModel):
 
     def get_export(self) -> dict[str, str | list[str]]:
         return {
+            "address": self.email,
             "name": self.name,
             "description": self.description,
-            "email": self.email,
             "aliases": self.aliases,
             "members": self.members,
         }
