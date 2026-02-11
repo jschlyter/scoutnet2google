@@ -191,7 +191,7 @@ class GoogleDirectory:
 
         all_members = self.get_all_members(group_key)
         current_members = set([x.email.lower() for x in all_members])
-        email_to_id = {x.email: x.id for x in all_members}
+        email_to_id = {x.email.lower(): x.id for x in all_members}
 
         new_members = members - current_members
         old_members = current_members - members
@@ -201,20 +201,22 @@ class GoogleDirectory:
         self.logger.debug("Old group members: %s", list(old_members))
 
         for member_email in old_members:
-            member_key = email_to_id[member_email]
-            try:
-                if not self.readonly:
-                    self.admin_service.members().delete(groupKey=group_key, memberKey=member_key).execute()
-                self.logger.info("Removed member %s (%s) from group %s", member_email, member_key, group_key)
-            except Exception as exc:
-                self.logger.debug("Exception: %s", str(exc))
-                self.logger.error(
-                    "Failed to delete %s (%s) from group %s",
-                    member_email,
-                    member_key,
-                    member_email,
-                    group_key,
-                )
+            if member_key := email_to_id.get(member_email):
+                try:
+                    if not self.readonly:
+                        self.admin_service.members().delete(groupKey=group_key, memberKey=member_key).execute()
+                    self.logger.info("Removed member %s (%s) from group %s", member_email, member_key, group_key)
+                except Exception as exc:
+                    self.logger.debug("Exception: %s", str(exc))
+                    self.logger.error(
+                        "Failed to delete %s (%s) from group %s",
+                        member_email,
+                        member_key,
+                        member_email,
+                        group_key,
+                    )
+            else:
+                self.logger.warning("Failed to removed member %s from group %s", member_email, group_key)
 
         for member_email in new_members:
             member_body = {"email": member_email}
