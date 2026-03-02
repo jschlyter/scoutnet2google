@@ -51,3 +51,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+      - name: Delete untagged containers
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          delete-untagged: true
