@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import configparser
 import json
 import logging
@@ -11,10 +12,54 @@ from .google import GoogleDirectory
 from .scoutnet import mailinglist2groups
 
 
+async def client(args: argparse.Namespace) -> None:
+
+    config = configparser.ConfigParser()
+    config["scoutnet"] = DEFAULT_CONFIG_SCOUTNET
+    config.read(DEFAULT_CONFIG_FILE)
+
+    domain = config["google"]["domain"]
+
+    if not args.skip_google:
+        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
+            config["google"]["service_account_file"]
+        )
+        directory = GoogleDirectory(domain, credentials, args.dry_run)
+
+    # Configure Scoutnet
+    scoutnet = ScoutnetClient(
+        api_endpoint=config["scoutnet"]["api_endpoint"],
+        api_id=config["scoutnet"]["api_id"],
+        api_key_customlists=config["scoutnet"]["api_key"],
+    )
+
+    # Fetch all mailing lists from Scoutnet
+    all_lists = await scoutnet.get_all_lists(limit=args.limit, max_tasks=args.tasks)
+
+    # Convert Scoutnet mailinglists to Google groups
+    all_groups = []
+    for mlist in all_lists.lists:
+        groups = mailinglist2groups(mlist)
+        for group in groups:
+            if group.email.endswith("@" + domain):
+                all_groups.append(group)
+            else:
+                logging.warning("Ignored list with invalid domain: %s", group.email)
+
+    # Optionally output all groups to file
+    if args.output:
+        with open(args.output, "w") as file:
+            file.write(json.dumps([x.get_export() for x in all_groups], sort_keys=True, indent=4))
+
+    # Synchronize with Google Directory
+    if not args.skip_google:
+        directory.sync_groups(sorted(all_groups, key=lambda g: g.email))
+
+
 def main() -> None:
     """main"""
 
-    parser = argparse.ArgumentParser(description="Convert Scoutnet mailinglist to Google groups")
+    parser = argparse.ArgumentParser(description="Convert Scoutnet mailinglists to Google groups")
 
     parser.add_argument(
         "--limit",
@@ -22,6 +67,14 @@ def main() -> None:
         metavar="N",
         type=int,
         help="Only process n groups (dangerous!)",
+    )
+    parser.add_argument(
+        "--tasks",
+        dest="tasks",
+        metavar="N",
+        type=int,
+        default=10,
+        help="Maximum number of concurrent tasks",
     )
     parser.add_argument(
         "--output",
@@ -55,46 +108,7 @@ def main() -> None:
         logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.DEBUG)
         logging.getLogger("googleapiclient.discovery").setLevel(logging.DEBUG)
 
-    config = configparser.ConfigParser()
-    config["scoutnet"] = DEFAULT_CONFIG_SCOUTNET
-    config.read(DEFAULT_CONFIG_FILE)
-
-    domain = config["google"]["domain"]
-
-    if not args.skip_google:
-        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
-            config["google"]["service_account_file"]
-        )
-        directory = GoogleDirectory(domain, credentials, args.dry_run)
-
-    # Configure Scoutnet
-    scoutnet = ScoutnetClient(
-        api_endpoint=config["scoutnet"]["api_endpoint"],
-        api_id=config["scoutnet"]["api_id"],
-        api_key_customlists=config["scoutnet"]["api_key"],
-    )
-
-    # Fetch all mailing lists from Scoutnet
-    all_lists = scoutnet.get_all_lists(args.limit)
-
-    # Convert Scoutnet mailinglists to Google groups
-    all_groups = []
-    for mlist in all_lists.values():
-        groups = mailinglist2groups(mlist)
-        for group in groups:
-            if group.email.endswith("@" + domain):
-                all_groups.append(group)
-            else:
-                logging.warning("Ignored list with invalid domain: %s", group.email)
-
-    # Optionally output all groups to file
-    if args.output:
-        with open(args.output, "w") as file:
-            file.write(json.dumps([x.get_export() for x in all_groups], sort_keys=True, indent=4))
-
-    # Syncronize with Google Directory
-    if not args.skip_google:
-        directory.sync_groups(sorted(all_groups, key=lambda g: g.email))
+    asyncio.run(client(args))
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", branch = "main" }
+scoutnet = {git = "https://github.com/jschlyter/python-scoutnet.git", branch = "v2" }
 
 [project.urls]
 repository = "https://github.com/jschlyter/scoutnet2google"
